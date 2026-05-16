@@ -599,6 +599,7 @@ async function studentJoinGame() {
             // 💡 核心修改：隱藏登入畫面，改為顯示故事黑畫面
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex'; 
+            
         } else {
             msg.innerText = result.message || "報到失敗";
         }
@@ -670,7 +671,7 @@ function startSpeedrunTimer() {
     document.getElementById('speedrun-timer').style.display = 'block';
 
     // 💡 核心修改：先檢查瀏覽器的筆記本 (localStorage) 裡有沒有存好的起始時間
-    const savedTime = localStorage.getItem('speedrunStartTime');
+    /*const savedTime = localStorage.getItem('speedrunStartTime');
     
     if (savedTime) {
         // 如果有紀錄，就把存好的字串轉換回數字，並接續使用
@@ -679,8 +680,10 @@ function startSpeedrunTimer() {
         // 如果沒有紀錄 (全新的遊戲)，記錄當下時間，並存進筆記本中
         speedrunStartTime = Date.now(); 
         localStorage.setItem('speedrunStartTime', speedrunStartTime.toString()); 
-    }
+    }*/
 
+    speedrunStartTime = Date.now(); 
+    
     // 啟動每秒更新的機制 (先檢查是否已經有在跑，避免重複啟動)
     if (!speedrunInterval) {
         speedrunInterval = setInterval(updateTimer, 1000); 
@@ -811,10 +814,11 @@ function startGame() {
     setTimeout(() => {
         startScreen.style.display = 'none'; // 動化結束後徹底隱藏
         
-        startSpeedrunTimer(); // 啟動計時器
+        
         
         // 遊戲正式開始時，顯示左上角的音樂開關按鈕
         document.getElementById('audio-toggle').style.display = 'block'; 
+        startSpeedrunTimer(); // 啟動計時器
         
         // 顯示主房間
         document.getElementById('main-room').classList.add('active-scene');
@@ -1837,7 +1841,7 @@ function openWithCurtain(exKey) {
         
     }, 1200); // 這個 1200 毫秒對應了我們 CSS 裡的 1.2s 動畫時間
 }
-    
+/*    
 window.onload = function() {
     // 如果筆記本裡有存時間，代表玩家玩到一半重新整理了
     if (localStorage.getItem('speedrunStartTime')) {
@@ -1845,7 +1849,7 @@ window.onload = function() {
         startSpeedrunTimer();
     }
 };
-
+*/
 </script>
 </body>
 </html>
