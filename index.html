@@ -549,7 +549,6 @@
     
 <script>
 // --- 1. 遊戲大腦 (Game State) ---
-// ⚠️ 替換為你的 Google Apps Script 網址
 const API_URL = "https://script.google.com/macros/s/AKfycbxbtIl8bYb8vy38SebQ92J8FHnP2F3I3fO-HZVdEzjRIrbtCRegSjoiCM7xK91PDNuw/exec"; 
 let mySchool = "";
 let myClass = "";
@@ -596,10 +595,11 @@ async function studentJoinGame() {
         const result = await response.json();
         
         if (result.status === "success") {
-            // 💡 核心修改：隱藏登入畫面，改為顯示故事黑畫面
+            // 💡 新增：報到成功瞬間立刻啟動計時器！
+            startSpeedrunTimer(); 
+            
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex'; 
-            
         } else {
             msg.innerText = result.message || "報到失敗";
         }
@@ -607,6 +607,7 @@ async function studentJoinGame() {
         msg.innerText = "連線失敗，請檢查網路。";
     }
 }
+
 const gameState = {
     clearedLevels: { taiten1: false, taiten2: false, taiten3: false },
     flags: { 
@@ -616,11 +617,9 @@ const gameState = {
         news3Unlocked: false, news3Read: false,
         finalUnlocked: false, 
         unlockedLetterCount: 1,
-        // 💡 新增：用來記錄 4 封信件/日記是否都已經被點開閱讀過了
         teacherRead: false, dropoutRead: false, diary1Read: false, diary2Read: false
     },
     materials: [],
-    // 新增了同門雪涯的設定
     characters: {
         'mother': { name: '母親\n陳順', relation: '相依為命', unlocked: false },
         'teacher': { name: '陳英聲\n老師', relation: '啟蒙恩師', unlocked: false },
@@ -630,61 +629,36 @@ const gameState = {
         'chen': { name: '陳進', relation: '台展三少年', unlocked: false }
     }
 };
-    
-// === 新增：音量設定與音樂開關邏輯 ===
-// 💡 在這裡調整你的音量！(0.0 到 1.0)
-const BGM_VOLUME = 0.1; // 背景音樂的音量 (0.4 代表 40%)
-const SFX_VOLUME = 0.8; // 翻紙音效的音量 (0.8 代表 80%)
 
+const BGM_VOLUME = 0.1; 
+const SFX_VOLUME = 0.8; 
 let isMuted = false;
 
 function toggleAudio() {
-    isMuted = !isMuted; // 切換靜音狀態
-    
-    // 抓取音樂與音效元件
+    isMuted = !isMuted; 
     const bgm = document.getElementById('bgm-audio');
     const sfx = document.getElementById('page-sfx');
     const btn = document.getElementById('audio-toggle');
-    
-    // 設定靜音屬性
     if (bgm) bgm.muted = isMuted;
     if (sfx) sfx.muted = isMuted;
-    
-    // 更改按鈕圖示
     btn.innerText = isMuted ? '🔇' : '🔊';
 }
+
 function playPageSound() {
     const sfx = document.getElementById('page-sfx');
     if (sfx) {
-        sfx.volume = SFX_VOLUME; // 💡 新增這行：設定音效的音量
+        sfx.volume = SFX_VOLUME; 
         sfx.currentTime = 1; 
         sfx.play().catch(e => console.log("音效播放被瀏覽器阻擋:", e));
     }
 }
 
-// === 修改：競速系統變數與核心邏輯 (加入 localStorage) ===
 let speedrunStartTime = 0;
 let speedrunInterval = null;
 
 function startSpeedrunTimer() {
-    // 顯示右上角的計時器
     document.getElementById('speedrun-timer').style.display = 'block';
-
-    // 💡 核心修改：先檢查瀏覽器的筆記本 (localStorage) 裡有沒有存好的起始時間
-    /*const savedTime = localStorage.getItem('speedrunStartTime');
-    
-    if (savedTime) {
-        // 如果有紀錄，就把存好的字串轉換回數字，並接續使用
-        speedrunStartTime = parseInt(savedTime, 10); 
-    } else {
-        // 如果沒有紀錄 (全新的遊戲)，記錄當下時間，並存進筆記本中
-        speedrunStartTime = Date.now(); 
-        localStorage.setItem('speedrunStartTime', speedrunStartTime.toString()); 
-    }*/
-
     speedrunStartTime = Date.now(); 
-    
-    // 啟動每秒更新的機制 (先檢查是否已經有在跑，避免重複啟動)
     if (!speedrunInterval) {
         speedrunInterval = setInterval(updateTimer, 1000); 
     }
@@ -693,31 +667,24 @@ function startSpeedrunTimer() {
 function updateTimer() {
     const now = Date.now();
     const diffInSeconds = Math.floor((now - speedrunStartTime) / 1000); 
-    
     const minutes = String(Math.floor(diffInSeconds / 60)).padStart(2, '0');
     const seconds = String(diffInSeconds % 60).padStart(2, '0');
-    
     document.getElementById('speedrun-timer').innerText = `${minutes}:${seconds}`;
 }
 
 function stopSpeedrunTimer() {
     clearInterval(speedrunInterval); 
-    speedrunInterval = null; // 重置計時器狀態
-    
-    // 💡 遊戲通關後，將筆記本裡的起始時間刪除，讓下一局能從 0 開始
+    speedrunInterval = null; 
     localStorage.removeItem('speedrunStartTime');
-    
     return document.getElementById('speedrun-timer').innerText; 
 }
+
 function customAlert(message) {
-    // 將傳入的文字放進視窗中，並將 \n 轉換為網頁的換行標籤 <br>
     document.getElementById('custom-modal-text').innerHTML = message.replace(/\n/g, '<br>');
-    // 顯示視窗 (使用 flex 讓它保持置中)
     document.getElementById('custom-modal').style.display = 'flex';
 }
 
 function closeCustomAlert() {
-    // 隱藏視窗
     document.getElementById('custom-modal').style.display = 'none';
 }
 
@@ -725,60 +692,40 @@ const exhibitions = {
     taiten1: {
         title: "第一屆臺展觀摩",
         paintings: [
-            // 第一幅是特殊簡介畫作，維持不變
             { name: '松壑飛泉', image: '1-1.png', targets: [ { id: 'p1_1', target: '臺展源起', top: '40%', left: '20%', w: '60px', h: '60px', found: false } ] },
-            { name: '基隆燃放水燈圖', image: '1-2f.png', targets: [ 
-                { id: 'p1_2', target: '中元節節慶元素', top: '68.15%', left: '50.0%', w: '73.8%', h: '13.7%', found: false } 
-            ] },
-            { name: '山地姑娘', image: '1-3f.png', targets: [ 
-                { id: 'p1_3', target: '台灣原住民元素', top: '49.25%', left: '47.9%', w: '20.6%', h: '60.9%', found: false } 
-            ] }
+            { name: '基隆燃放水燈圖', image: '1-2f.png', targets: [ { id: 'p1_2', target: '中元節節慶元素', top: '68.15%', left: '50.0%', w: '73.8%', h: '13.7%', found: false } ] },
+            { name: '山地姑娘', image: '1-3f.png', targets: [ { id: 'p1_3', target: '台灣原住民元素', top: '49.25%', left: '47.9%', w: '20.6%', h: '60.9%', found: false } ] }
         ]
     },
     taiten2: {
         title: "第二屆臺展觀摩",
         paintings: [
             { name: '春宵之圖', image: '2-1f.png', targets: [
-                // 💡 這幅畫有兩個目標！
                 { id: 'p2_1_1', target: '傳統廟宇元素', top: '43.25%', left: '41.75%', w: '39.9%', h: '44.7%', found: false },
                 { id: 'p2_1_2', target: '上元節節慶元素', top: '65.6%', left: '77.25%', w: '22.5%', h: '15.6%', found: false }
             ] },
-            { name: '圓山附近', image: '2-2f.png', targets: [ 
-                { id: 'p2_2', target: '現代化設施', top: '61.4%', left: '25.95%', w: '13.7%', h: '7.8%', found: false } 
-            ] }
-            // (已刪除 2-3)
+            { name: '圓山附近', image: '2-2f.png', targets: [ { id: 'p2_2', target: '現代化設施', top: '61.4%', left: '25.95%', w: '13.7%', h: '7.8%', found: false } ] }
         ]
     },
     taiten3: {
         title: "第三屆臺展觀摩",
         paintings: [
-            { name: '芭蕉園', image: '3-1f.png', targets: [ 
-                { id: 'p3_1', target: '南洋熱帶景觀', top: '47.7%', left: '34.9%', w: '41.8%', h: '57.2%', found: false } 
-            ] },
+            { name: '芭蕉園', image: '3-1f.png', targets: [ { id: 'p3_1', target: '南洋熱帶景觀', top: '47.7%', left: '34.9%', w: '41.8%', h: '57.2%', found: false } ] },
             { name: '朝天宮的祭典', image: '3-2f.png', targets: [
-                // 💡 這幅畫也有兩個目標！
                 { id: 'p3_2_1', target: '台灣傳統廟宇的元素', top: '41.1%', left: '23.2%', w: '19.8%', h: '21.0%', found: false },
                 { id: 'p3_2_2', target: '日本殖民元素', top: '55.5%', left: '63.95%', w: '45.5%', h: '21.6%', found: false }
             ] }
-            // (已刪除 3-3)
         ]
     }
 };
 
 const finalFragments = [
-    // 🍍 臺灣特產元素 (2張)
     { id: 'f0', category: '臺灣特產元素', img: 'frag1.png', left: '24.3%', top: '68.0%', w: '7.6%', h: '11.6%', placed: false },
     { id: 'f1', category: '臺灣特產元素', img: 'frag2.png', left: '8.3%', top: '58.6%', w: '16.3%', h: '1.7%', placed: false },
-    
-    // 🏮 傳統信仰元素 (2張)
     { id: 'f2', category: '傳統信仰元素', img: 'frag3.png', left: '93.6%', top: '65.2%', w: '10.2%', h: '22.6%', placed: false },
     { id: 'f3', category: '傳統信仰元素', img: 'frag4.png', left: '81.2%', top: '78.7%', w: '23.8%', h: '11.9%', placed: false },
-    
-    // 🏛️ 日本殖民元素 (2張)
     { id: 'f4', category: '日本殖民元素', img: 'frag5.png', left: '67.9%', top: '60.5%', w: '8.0%', h: '5.9%', placed: false },
     { id: 'f5', category: '日本殖民元素', img: 'frag6.png', left: '65.7%', top: '67.8%', w: '4.4%', h: '11.4%', placed: false },
-
-    // 🌴 南洋元素 (3張)
     { id: 'f6', category: '南洋元素', img: 'frag7.png', left: '12.6%', top: '73.7%', w: '7.0%', h: '6.8%', placed: false },
     { id: 'f7', category: '南洋元素', img: 'frag8.png', left: '12.5%', top: '96.7%', w: '11.9%', h: '5.5%', placed: false },
     { id: 'f8', category: '南洋元素', img: 'frag9.png', left: '12.1%', top: '52.5%', w: '10.3%', h: '4.0%', placed: false }
@@ -786,46 +733,26 @@ const finalFragments = [
 
 let selectedFragIndex = null; 
 let placedCount = 0;          
-// 💡 將預設開啟的標籤改為陣列中的第一個分類，確保一進畫面就有圖片顯示
 let currentCategory = '臺灣特產元素';
 
-// --- 2. 系統與推進邏輯 ---
-// --- 2. 系統與推進邏輯 ---
 function startGame() {
-    // 抓取背景音樂元件
     const bgm = document.getElementById('bgm-audio');
-    
     if (bgm) {
         bgm.volume = BGM_VOLUME; 
-        bgm.currentTime = 15; // 設定從第 15 秒開始播
+        bgm.currentTime = 15; 
         bgm.play().catch(e => console.log("BGM 播放被瀏覽器阻擋:", e));
-
-        // 監聽音樂是否播放完畢 (ended)
-        bgm.addEventListener('ended', function() {
-            this.currentTime = 15; 
-            this.play();
-        });
+        bgm.addEventListener('ended', function() { this.currentTime = 15; this.play(); });
     }
 
-    // 💡 核心修改：處理故事黑畫面的淡出動畫
     const startScreen = document.getElementById('start-screen');
-    startScreen.style.opacity = '0'; // 觸發 CSS opacity 2s ease 的淡出特效
+    startScreen.style.opacity = '0'; 
     
     setTimeout(() => {
-        startScreen.style.display = 'none'; // 動化結束後徹底隱藏
-        
-        
-        
-        // 遊戲正式開始時，顯示左上角的音樂開關按鈕
+        startScreen.style.display = 'none'; 
         document.getElementById('audio-toggle').style.display = 'block'; 
-        startSpeedrunTimer(); // 啟動計時器
-        
-        // 顯示主房間
         document.getElementById('main-room').classList.add('active-scene');
-        
-        // 2 秒後讓第一個提示物件(舊玩具)開始閃爍
         setTimeout(() => document.getElementById('item1').classList.add('flashing'), 2000); 
-    }, 1500); // 配合過場時間
+    }, 1500);
 }
 
 function showScene(sceneId) {
@@ -836,40 +763,27 @@ function showScene(sceneId) {
 function returnToRoom() { 
     showScene('main-room'); 
     checkRoomState(); 
-    // 💡 已經將切換音樂的邏輯刪除，因為主音樂不再需要重新啟動
 }
-
-// --- 新增：宣告一個變數來儲存自動滾動的計時器 ---
-let autoScrollInterval;
 
 function readChildhood() {
     document.getElementById('item1').classList.remove('flashing');
     gameState.flags.childhoodRead = true;
     
-    // === 【新增】：啟動信件解鎖計時器 ===
-    // 檢查是否已經啟動過，避免重複啟動
     if (!gameState.letterTimer) {
-        // setInterval 會依照設定的時間不斷重複執行裡面的程式
         gameState.letterTimer = setInterval(() => {
-            if (gameState.flags.unlockedLetterCount < 4) { // 總共有 8 封信
+            if (gameState.flags.unlockedLetterCount < 4) { 
                 gameState.flags.unlockedLetterCount++;
-                
-                // 跳出提示告訴玩家有新信件
                 customAlert("書桌上似乎有新的信件或日記浮現了...");
-                
-                // 如果玩家剛好停留在信件目錄畫面上，自動幫他重新整理畫面
                 if (document.getElementById('letter-list-container')) {
                     renderLetterList();
                 }
             } else {
-                clearInterval(gameState.letterTimer); // 8 封全解鎖後，停止計時器以節省效能
+                clearInterval(gameState.letterTimer); 
             }
-        }, 120000); // 120000 毫秒 = 2 分鐘。(💡開發提示：測試時可以先改成 5000，也就是 5 秒鐘解鎖一封，方便你確認功能！)
+        }, 60000); // 💡 信件解鎖時間 (120000 = 2分鐘)
     }
-    // ===================================
     
     showScene('sub-level');
-    
     document.getElementById('level-container').innerHTML = `
         <div style="display: flex; flex-direction: column; height: 100%;">
             <h2 style="margin-bottom: 5px;">童年獨白</h2>
@@ -883,46 +797,31 @@ function readChildhood() {
     `;
 }
 
-// --- 展示〈後苑雞立〉畫作與註記 ---// 
 function showChickenPainting() {
     document.getElementById('level-container').innerHTML = `
         <h2>〈後苑雞立〉</h2>
-        <!-- 1. 設定高度為 350px，並使用 align-items: stretch 讓左右兩側強制等高 -->
         <div style="display: flex; gap: 20px; align-items: stretch; justify-content: center; margin-top: 20px; height: 550px;">
-            
-            <!-- 左側：畫作圖片展示區 -->
             <div style="flex: 1; text-align: center; height: 100%;">
-                <!-- 2. 設定 height: 100%，並用 object-fit: contain 讓圖片不變形地填滿高度 -->
                 <img src="./chicken.png" alt="後苑雞立" style="width: 100%; height: 100%; object-fit: contain; border: 0px solid #d4af37; box-sizing: border-box; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
             </div>
-            
-           <!-- 右側：註記與手寫字 -->
             <div class="paper-style handwriting" style="flex: 1; height: 100%; overflow-y: auto; margin-bottom: 0; box-sizing: border-box;">
                 98公分乘以44公分的長卷，上頭有著一隻高壯挺立的公雞，尾巴黑如柳枝彷彿能動：雞身筆觸結實，胸前金黃色羽毛閃著光，眼神銳利往回頭看；畫作上方則有紫色牽牛花錯落蔓延，生意盎然。<br><br>
                 右上方淡淡童稚的鉛筆筆觸寫著「12歲郭金火繪」，左側還落了印。
             </div>
         </div>
-        
         <button class="action-btn" style="margin-top: 25px;" onclick="returnToRoom()">闔上回憶，開始探索房間</button>
     `;
 }
 
-// --- 閱讀信件與目錄邏輯 ---
 function readLetters() {
-    // 防呆檢查
     if (!gameState.flags.childhoodRead) { customAlert("請先點擊閃爍的舊玩具，回憶你的初心。"); return; }
-    
     document.getElementById('item4').classList.remove('flashing');
     gameState.flags.lettersRead = true;
-    
-    // 【修改重點】：已經把原本在這裡一次解鎖人物的程式碼移除了！
-    
     showScene('sub-level');
-    renderLetterList(); // 進入場景後，呼叫顯示信件目錄的函式
+    renderLetterList(); 
 }
-// 顯示信件與日記的「目錄清單」
+
 function renderLetterList() {
-    // 【修改重點】：移除了已刪除的 4 封信件，現在陣列中只保留這 4 封
     const letters = [
         { id: 'teacher', icon: '✉️', title: '導師陳英聲給母親的信' },
         { id: 'dropout', icon: '✉️', title: '寄給母親的休學信' },
@@ -931,21 +830,11 @@ function renderLetterList() {
     ];
 
     let listHTML = '';
-    
-    // 利用迴圈，逐一檢查每一封信是否已經解鎖
     letters.forEach((letter, index) => {
         if (index < gameState.flags.unlockedLetterCount) {
-            listHTML += `
-                <button class="action-btn" style="width: 90%; padding: 15px; font-size: 16px; border: 1px dashed #d4af37;" onclick="openLetter('${letter.id}')">
-                    ${letter.icon} ${letter.title}
-                </button>
-            `;
+            listHTML += `<button class="action-btn" style="width: 90%; padding: 15px; font-size: 16px; border: 1px dashed #d4af37;" onclick="openLetter('${letter.id}')">${letter.icon} ${letter.title}</button>`;
         } else {
-            listHTML += `
-                <button class="action-btn locked" style="width: 90%; padding: 15px; font-size: 16px; border: 1px dashed #777;" disabled>
-                    🔒 尚未回想起來的記憶...
-                </button>
-            `;
+            listHTML += `<button class="action-btn locked" style="width: 90%; padding: 15px; font-size: 16px; border: 1px dashed #777;" disabled>🔒 尚未回想起來的記憶...</button>`;
         }
     });
 
@@ -958,95 +847,58 @@ function renderLetterList() {
     `;
 }
 
-// 開啟並顯示「單封信件」全文
-// 開啟並顯示「單封信件」全文 (已加入重複開啟跳過動畫邏輯)
 function openLetter(type) {
     playPageSound(); 
-
-    // 💡 1. 在更新狀態前，先確認這封信「之前」是否讀過了
     let alreadyRead = false;
     if (type === 'teacher' && gameState.flags.teacherRead) alreadyRead = true;
     if (type === 'dropout' && gameState.flags.dropoutRead) alreadyRead = true;
     if (type === 'diary1' && gameState.flags.diary1Read) alreadyRead = true;
     if (type === 'diary2' && gameState.flags.diary2Read) alreadyRead = true;
 
-    // 2. 更新已讀狀態與人物解鎖 (維持原本邏輯)
-    if (type === 'teacher') {
-        gameState.flags.teacherRead = true;
-        gameState.characters['mother'].unlocked = true;
-        gameState.characters['teacher'].unlocked = true;
-    } else if (type === 'dropout') {
-        gameState.flags.dropoutRead = true;
-    } else if (type === 'diary1') {
-        gameState.flags.diary1Read = true;
-        gameState.characters['master'].unlocked = true;
-    } else if (type === 'diary2') {
-        gameState.flags.diary2Read = true;
-        gameState.characters['xueya'].unlocked = true;
-    }
+    if (type === 'teacher') { gameState.flags.teacherRead = true; gameState.characters['mother'].unlocked = true; gameState.characters['teacher'].unlocked = true; }
+    else if (type === 'dropout') { gameState.flags.dropoutRead = true; }
+    else if (type === 'diary1') { gameState.flags.diary1Read = true; gameState.characters['master'].unlocked = true; }
+    else if (type === 'diary2') { gameState.flags.diary2Read = true; gameState.characters['xueya'].unlocked = true; }
 
-    let title = "";
-    let content = "";
+    let title = ""; let content = "";
     switch (type) {
-        case 'teacher': title = "導師陳英聲給母親的信"; content = "陳順女士 鈞鑒：<br>令郎金火具繪畫天分，筆意自然且形神兼備。為免埋沒才華，懇請准其課後留校受我指導精進畫藝。<br><br>專此奉達，敬請 鈞安<br>臺北廳大稻埕公學校 導師　陳英聲 敬上"; break;
+        case 'teacher': title = "導師陳英聲給母親的信"; content = "陳順女士 鈞鑒：<br>令郎金火具繪畫天分，筆意自然且形神兼備。為免埋沒才華，懇請准其課後留校受我指導精進畫藝。<br><br>專此奉達，敬請 鈞安<br>臺北廳大稻埕公學校 導師 陳英聲 敬上"; break;
         case 'dropout': title = "寄給母親的休學信"; content = "母親大人 膝下：<br>孩兒金火頓首百拜。今有一事，思之再三，望母親垂察。雖修習土木，然志趣不合，唯有在繪畫中方感自得。故決定離校追尋畫藝。望母親體諒孩兒志向，我必加倍勤勉、以畫立身，不負教誨，伏請母親保重。<br>謹此奉告，叩請<br>金安"; break;
         case 'diary1': title = "雪溪畫館的日記（一）"; content = "（一）大正某年某月某日  晴<br>今日入雪溪畫館，驚喜得知母親曾私下向老師薦畫，方有此機緣。初見老師，其語平實卻力道萬鈞。我從國畫線條練起，方知往昔隨意。畫館清幽，使我心神漸定；願日後筆下之作，能不濁於世、不淺於形，以此自勉。"; break;
         case 'diary2': title = "雪溪畫館的日記（二）"; content = "（二）大正某年某月某日  陰<br>入館習畫日久，深感理論不足，遂從雪溪老師領悟線條與氣韻之理。平日與同門雪涯寫生、切磋短長，並共赴圖書館鑽研畫論。我漸領會構圖節奏與不言之意，此等進修補足了未受科班教育的空白。只要日日精進，定能自成一路。"; break;
     }
 
-    // 💡 3. 根據是否讀過，決定初始 CSS 類別與顯示狀態
-    // 如果讀過：直接加上動畫結束後的類別 (pulled, unfolded, revealed)
-    // 如果沒讀過：使用預設類別，等待動畫觸發
     const paperClasses = alreadyRead ? "letter-paper pulled unfolded" : "letter-paper";
     const contentClasses = alreadyRead ? "letter-text-container handwriting revealed" : "letter-text-container handwriting";
-    const uiDisplay = alreadyRead ? "none" : "flex"; // 隱藏信封與拆信刀
+    const uiDisplay = alreadyRead ? "none" : "flex"; 
     const openerDisplay = alreadyRead ? "none" : "block";
 
     document.getElementById('level-container').innerHTML = `
         <h2 style="margin-bottom: 5px;">${title}</h2>
         <div class="envelope-container" style="height: 350px; padding: 0; background: transparent;">
-            
             <div id="env-top" class="envelope-half envelope-top" style="display: ${uiDisplay};">
                 <div id="cut-trail" class="cut-trail"></div>
             </div>
-            
-            <img src="./opener.png" id="letter-opener" class="letter-opener" alt="拆信刀" style="display: ${openerDisplay};"
-                 onmousedown="startCutting(event)" onmousemove="sawCutting(event)" onmouseup="stopCutting(event)" onmouseleave="stopCutting(event)"
-                 ontouchstart="startCutting(event)" ontouchmove="sawCutting(event)" ontouchend="stopCutting(event)">
-            
-            <div id="env-bottom" class="envelope-half envelope-bottom" style="display: ${uiDisplay};"
-                 onmousedown="startCutting(event)" onmousemove="sawCutting(event)" onmouseup="stopCutting(event)" onmouseleave="stopCutting(event)"
-                 ontouchstart="startCutting(event)" ontouchmove="sawCutting(event)" ontouchend="stopCutting(event)"></div>
-            
+            <img src="./opener.png" id="letter-opener" class="letter-opener" alt="拆信刀" style="display: ${openerDisplay};" onmousedown="startCutting(event)" onmousemove="sawCutting(event)" onmouseup="stopCutting(event)" onmouseleave="stopCutting(event)" ontouchstart="startCutting(event)" ontouchmove="sawCutting(event)" ontouchend="stopCutting(event)">
+            <div id="env-bottom" class="envelope-half envelope-bottom" style="display: ${uiDisplay};" onmousedown="startCutting(event)" onmousemove="sawCutting(event)" onmouseup="stopCutting(event)" onmouseleave="stopCutting(event)" ontouchstart="startCutting(event)" ontouchmove="sawCutting(event)" ontouchend="stopCutting(event)"></div>
             <div id="letter-paper" class="${paperClasses}">
                 <div id="letter-content" class="${contentClasses}">
                     ${content}
-                    <div style="margin-top: 40px; text-align: right; font-size: 15px; opacity: 0.5; font-family: sans-serif; letter-spacing: 1px;">
-                        * 文字內容由真實事件改編
-                    </div>
+                    <div style="margin-top: 40px; text-align: right; font-size: 15px; opacity: 0.5; font-family: sans-serif; letter-spacing: 1px;">* 文字內容由真實事件改編</div>
                 </div>
             </div>
         </div>
         <button class="action-btn" onclick="renderLetterList()">返回信件目錄</button>
     `;
+    if (!alreadyRead) { cutProgress = 0; hasTorn = false; }
+}
 
-    // 💡 4. 只有在「第一次讀」時，才需要重置割信進度
-    if (!alreadyRead) {
-        cutProgress = 0;
-        hasTorn = false;
-    }
-}// 這是 openLetter 函式的結尾大括號
- 
-// --- 3. 人物關係圖 ---
 function openRelationMap() {
     if (!gameState.flags.childhoodRead) { customAlert("請先點擊閃爍的舊玩具，回憶你的初心"); return; }
     showScene('sub-level');
     document.getElementById('level-container').innerHTML = `
         <h2>照片牆 (記憶網絡)</h2>
-        <div id="relation-map-container">
-            <svg id="svg-lines"></svg>
-            <div id="nodes-container"></div>
-        </div>
+        <div id="relation-map-container"><svg id="svg-lines"></svg><div id="nodes-container"></div></div>
     `;
     renderRelations();
 }
@@ -1095,15 +947,15 @@ function renderRelations() {
     });
 }
 
-// --- 4. 報紙與填空遊戲 ---
+// --- 4. 報紙與填空遊戲 (拖曳互動版) ---
+// --- 4. 報紙與填空遊戲 (點擊互動版) ---
 let selectedWordObj = null;
-let currentNewsLevel = 0; // 新增：用來記錄目前正在挑戰第幾屆的報紙
+let currentNewsLevel = 0; 
 
 function readNewspaper() {
     if (!gameState.flags.childhoodRead) { customAlert("請先點擊閃爍的舊玩具，回憶你的初心。"); return; }
     showScene('sub-level');
     
-    // 根據目前的解鎖進度，決定要開啟哪一屆的報紙填空
     if (gameState.flags.news3Unlocked && !gameState.flags.news3Read) {
         document.getElementById('item2').classList.remove('flashing');
         startNewspaperPuzzle(3);
@@ -1127,17 +979,12 @@ function readNewspaper() {
 function startNewspaperPuzzle(level) {
     playPageSound();
     selectedWordObj = null;
-    currentNewsLevel = level; // 記錄當前關卡
+    currentNewsLevel = level;
     
-    let title = "";
-    let contentHTML = "";
-    let wordsHTML = "";
-    let imageFile = ""; 
+    let title = ""; let contentHTML = ""; let wordsHTML = ""; let imageFile = ""; 
     
-    // 根據不同關卡載入專屬的歷史文本、詞彙庫與照片
     if (level === 1) {
-        title = "第一回臺展短評 (1927)";
-        imageFile = "news1.png"; 
+        title = "第一回臺展短評 (1927)"; imageFile = "news1.png"; 
         contentHTML = `
             「村上英夫氏的〈基隆燃放水燈圖〉描寫 <span class="blank-slot" data-answer="台灣" onclick="fillSlot(this)">___</span> 風俗，本島人的男男女女都爭相停下腳步觀賞。乍看有點長崎風俗畫的古畫感，是一幅有浮世繪風格的細密畫，以人偶般姿態描寫遊行的人物或看熱鬧的景象，甚是有趣。也可看到故意用簡樸的筆法呈現枯淡意境的苦心。」<br><br>
             「〈山地姑娘〉看上去就像是個溫柔的 <span class="blank-slot" data-answer="番地" onclick="fillSlot(this)">___</span> 少女，有著人偶般的臉龐。〈萌芽〉是表現春天感覺的佳作，〈山地姑娘〉則是一幅令人聯想深山少女純真的象徵性畫作。」
@@ -1146,37 +993,27 @@ function startNewspaperPuzzle(level) {
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w1_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     } 
     else if (level === 2) {
-        title = "第二回臺展短評 (1928)";
-        imageFile = "news2.png"; 
-        
-        // 💡 核心修改：將「光熱」變回普通文字，保留「色彩」與「鄉土藝術」作為填空位置
+        title = "第二回臺展短評 (1928)"; imageFile = "news2.png"; 
         contentHTML = `
             「本島其實有許多優秀的題材，期望今後的藝術可以表現臺灣獨特的 <span class="blank-slot" data-answer="色彩" onclick="fillSlot(this)">___</span> 與光熱。就如同東都（東京）有東都的、京都有京都的、大阪有大阪的各自的鄉土藝術一樣，希望本島也能完成屬於自己的 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 。」
         `;
-        
-        // 💡 調整選項：確保包含兩個正確答案，並提供其他干擾詞彙
         const words = ["色彩", "光熱", "鄉土藝術", "筆觸", "現代主義"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w2_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     }
     else if (level === 3) {
-        title = "第三回臺展短評 (1929)";
-        imageFile = "news3.png"; 
+        title = "第三回臺展短評 (1929)"; imageFile = "news3.png"; 
         contentHTML = `
             「若能直言不諱吾人的希望，願臺展是臺灣 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 的結晶，換言之，作品必須以能充分展現臺灣 <span class="blank-slot" data-answer="地方色" onclick="fillSlot(this)">___</span> 之物為題材來發揮臺展的特色。當然，嚴格來說，臺灣尚未擁有真正的鄉土藝術，勉強來說，源自漳州藝術、泉州藝術之流，從殘留在臺中州鹿港的建築物可一窺其基幹，或是遍布島內的寺或孔子廟等等 <span class="blank-slot" data-answer="廟宇" onclick="fillSlot(this)">___</span> 建築為其代表，然而，就繪畫而言，漳州藝術實無任何特色可言。」
         `;
         const words = ["地方色", "鄉土藝術", "廟宇", "特色", "寫生"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w3_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     }
-let html = `
+
+    let html = `
         <h2>${title}</h2>
-        
-        <!-- === 修改重點：使用 max-height 讓容器高度自適應 === -->
-        <!-- 將原本的 height: 180px 改為 max-height: 500px -->
         <div style="max-height: 500px; overflow-y: auto; margin-bottom: 15px; border: 2px solid #8d6e63; box-shadow: 0 5px 15px rgba(0,0,0,0.3); box-sizing: border-box;">
-            <!-- 內層圖片維持寬度 100%，高度自動 -->
             <img src="./${imageFile}" alt="歷史報紙剪影" style="width: 100%; height: auto; display: block;">
         </div>
-        
         <div class="paper-style newspaper-text">${contentHTML}</div>
         <p style="text-align:center; color:#aaa; font-size:14px;">(點擊下方詞彙，再點擊文章空格填入)</p>
         <div class="word-bank">${wordsHTML}</div>
@@ -1184,77 +1021,79 @@ let html = `
     `;
     document.getElementById('level-container').innerHTML = html;
 }
+
 function selectWord(btn) {
     document.querySelectorAll('.word-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected'); selectedWordObj = btn; 
+    btn.classList.add('selected'); 
+    selectedWordObj = btn; 
 }
 
 function fillSlot(slot) {
+    if (slot.innerText !== "___") {
+        // 如果已經填了，就把它退回去 (讓使用者點一下可以取消)
+        returnWord(slot);
+        return;
+    }
     if (selectedWordObj) {
         slot.innerText = selectedWordObj.innerText;
         slot.classList.add('filled');
-        selectedWordObj.classList.add('hidden'); selectedWordObj.classList.remove('selected');
+        selectedWordObj.classList.add('hidden'); // 把選中的詞隱藏
+        slot.setAttribute('data-word-id', selectedWordObj.id); // 記住這格填了哪個詞
         selectedWordObj = null;
         checkPuzzleCompletion();
     }
 }
 
+function returnWord(slot) {
+    if (slot.innerText === "___") return;
+    const wordId = slot.getAttribute('data-word-id');
+    const wordEl = document.getElementById(wordId);
+    if (wordEl) wordEl.classList.remove('hidden');
+    
+    slot.innerText = "___";
+    slot.classList.remove('filled');
+    slot.removeAttribute('data-word-id');
+}
+
 function checkPuzzleCompletion() {
     let allFilled = true; let allCorrect = true;
-    
     document.querySelectorAll('.blank-slot').forEach(slot => {
-        if (slot.innerText === "___") {
-            allFilled = false; // 如果還有空格沒填，標記為未完成
-        } else {
-            // 【修改重點】：允許互換位置的邏輯
-            // 將 data-answer 裡面的字串用逗號切開成一個陣列 (例如 ["色彩", "光熱"])
+        if (slot.innerText === "___") { allFilled = false; } 
+        else {
             const validAnswers = slot.getAttribute('data-answer').split(',');
-            
-            // 檢查玩家目前填入的字，有沒有包含在這個陣列裡面
-            if (!validAnswers.includes(slot.innerText)) {
-                allCorrect = false; // 如果沒有包含，就代表答錯了
-            }
+            if (!validAnswers.includes(slot.innerText)) { allCorrect = false; }
         }
     });
     
-    // 如果全部都填滿了，就過 0.3 秒後驗證答案
     if (allFilled) {
         setTimeout(() => {
             if (allCorrect) {
                 customAlert("解讀正確！你精準理解了當時的評論。");
-                // 根據當前關卡，動態更新通關旗標
                 if (currentNewsLevel === 1) gameState.flags.news1Read = true;
                 if (currentNewsLevel === 2) gameState.flags.news2Read = true;
                 if (currentNewsLevel === 3) gameState.flags.news3Read = true;
                 returnToRoom();
             } else {
-                customAlert("理解有誤...請重新閱讀再試一次。");
-                // 答錯時，重新載入當前關卡的拼圖
-                startNewspaperPuzzle(currentNewsLevel); 
+                customAlert("理解有誤...請點擊填好的詞彙將其移除，重新選擇再試一次。");
             }
         }, 300);
     }
 }
 
-// --- 5. 畫廊與尋找威力 (新增左右切換畫廊) ---
+// --- 5. 畫廊與尋找威力 ---
 function openSketchbook() {
     if (!gameState.flags.childhoodRead) { customAlert("請先點擊閃爍的舊玩具，回憶你的初心"); return; }
-    // 💡 新增：播放翻開速寫本的音效
-
-    
     showScene('sub-level');
     const c1 = gameState.flags.childhoodRead && gameState.flags.lettersRead;
     const c2 = gameState.flags.news1Read;
     const c3 = gameState.flags.news2Read;
 
     let matHTML = gameState.materials.map(m => `<div class="material-slot">${m}</div>`).join('');
-   // 【修改重點】：把 enterPainting 換成了 openWithCurtain
     document.getElementById('level-container').innerHTML = `
         <h2>寫生速寫本</h2>
         <button class="action-btn ${c1?'':'locked'}" onclick="${c1?"openWithCurtain('taiten1')":"customAlert('需先完成初期探索')" }">第一屆臺展</button>
         <button class="action-btn ${c2?'':'locked'}" onclick="${c2?"openWithCurtain('taiten2')":"customAlert('請先完成第一屆臺展並閱讀報紙')" }">第二屆臺展</button>
         <button class="action-btn ${c3?'':'locked'}" onclick="${c3?"openWithCurtain('taiten3')":"customAlert('請先完成第二屆臺展並閱讀報紙')" }">第三屆臺展</button>
-        
         <div class="material-library">
             <h3>🎨 已收集的靈感素材 (${gameState.materials.length})</h3>
             <div class="material-grid">${matHTML || '<span style="color:#666;">尚無素材...進入畫作中尋找吧！</span>'}</div>
@@ -1262,8 +1101,6 @@ function openSketchbook() {
     `;
 }
    
-// 修改後的「畫廊左右切換」渲染邏輯
-// 修改後的「畫廊左右切換」渲染邏輯 (已移除返回速寫本按鈕)
 function enterPainting(exKey, pIndex) {
     const exData = exhibitions[exKey];
     const p = exData.paintings[pIndex];
@@ -1271,7 +1108,6 @@ function enterPainting(exKey, pIndex) {
     const isFirst = (pIndex === 0);
     const isLast = (pIndex === total - 1);
 
-    // 1. 動態生成帶有左右切換箭頭的標題區塊
     let headerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
             <button class="nav-arrow" onclick="enterPainting('${exKey}', ${pIndex - 1})" ${isFirst ? 'disabled' : ''}>&#10094;</button>
@@ -1283,13 +1119,8 @@ function enterPainting(exKey, pIndex) {
 
     let contentHTML = "";
 
-    // 2. 針對《松壑飛泉》做劇院級的「先黑幕簡介、再切換畫作」兩階段處理
     if (exKey === 'taiten1' && pIndex === 0) {
         const t = p.targets[0];
-        
-        // 💡 預先將「真正的畫作與日記」打包好 (已移除「返回速寫本目錄」按鈕)
-        // 💡 修改：根據是否已播放過簡介，來決定便利貼是否要帶有動畫類別
-        // 如果已經播放過 (Played 為 true)，就使用純靜態類別，避免重複滑入
         const paperClass = gameState.flags.taitenIntroPlayed ? "paper-style handwriting" : "paper-style handwriting slide-in-paper";
         const paperDelay = gameState.flags.taitenIntroPlayed ? "0s" : "0.8s";
         const paperOpacity = gameState.flags.taitenIntroPlayed ? "1" : "0";
@@ -1297,24 +1128,18 @@ function enterPainting(exKey, pIndex) {
         const paintingHTML = `
             <div style="height: 100%; display: flex; flex-direction: column;">
                 ${headerHTML}
-                
                 <div style="display: flex; gap: 20px; align-items: center; margin-top: 10px; flex: 1;">
-                    <!-- 左側：畫作展示 -->
                     <div style="flex: 1; text-align: center; display: flex; justify-content: center; align-items: center;">
                         <img src="./${p.image}" alt="${p.name}" style="max-width: 100%; max-height: 320px; width: auto; height: auto; object-fit: contain; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
                     </div>
-                    
-                    <!-- 右側：日記便條紙 -->
                     <div style="flex: 1;">
-                        <!-- 💡 這裡套用了動態判斷的 paperClass 與樣式 -->
                         <div class="${paperClass}" style="font-size: 16px; padding: 20px; margin: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.4); animation-delay: ${paperDelay}; opacity: ${paperOpacity};">
                             <strong>【〈松壑飛泉〉與首次臺展的日記】</strong><br>
-                            昭和二年　某月某日　晴<br>
+                            昭和二年 某月某日 晴<br>
                             今日獲悉〈松壑飛泉〉入選首屆台展，驚喜之餘亦感不足。回思作畫時對山石構圖的推敲，雖被評為將來可期，但我深知筆力尚弱、樹石氣韻仍欠穩重。此畫雖未臻成熟，卻是我藝術生涯的起點，願以此自勉，用餘生磨礪筆墨，讓畫作長出自己的樣貌。
                         </div>
                     </div>
                 </div>
-                
                 <div style="margin-top: 15px;">
                     <button class="action-btn" style="margin-bottom: 10px;" onclick="findTarget('${exKey}', ${pIndex}, 0)">
                         ${t.found ? '✅ 已重溫這段記憶' : '💡 獲得啟發 (收集素材)'}
@@ -1324,7 +1149,6 @@ function enterPainting(exKey, pIndex) {
         `;
         if (!gameState.flags.taitenIntroPlayed) {
             gameState.flags.taitenIntroPlayed = true;
-
             document.getElementById('level-container').innerHTML = `
                 <div id="intro-black-screen" style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #111; border-radius: 5px; padding: 40px; box-sizing: border-box; box-shadow: inset 0 0 50px #000;">
                     <p class="fade-in-item" style="color: #f4e4bc; font-size: 18px; margin: 15px 0; line-height: 1.8; text-align: center; animation-delay: 0.5s;">1927年首屆臺灣美術展覽會開幕，開啟臺灣官方美術競賽先河。</p>
@@ -1332,24 +1156,19 @@ function enterPainting(exKey, pIndex) {
                     <p class="fade-in-item" style="color: #f4e4bc; font-size: 18px; margin: 15px 0; line-height: 1.8; text-align: center; animation-delay: 2.5s;">不僅確立了東洋畫與西洋畫的分類，<br>更寫下臺灣新美術運動的重要里程碑。</p>
                 </div>
             `;
-
             setTimeout(() => {
                 if (!document.getElementById('intro-black-screen')) return;
                 document.getElementById('level-container').innerHTML = paintingHTML;
             }, 4500); 
-
             return; 
-            
         } else {
             document.getElementById('level-container').innerHTML = paintingHTML;
             return;
         }
    } else {
-        // 💡 檢查如果是《圓山附近》，就加入專屬的滑入日記
         let diaryHTML = '';
         if (p.name === '圓山附近') {
             diaryHTML = `
-                <!-- 💡 修改：將 margin-top 設為 15px，讓便條紙與上方的畫作保持距離 -->
                 <div class="paper-style handwriting slide-in-paper" style="padding: 15px; margin-top: 15px; margin-bottom: 10px; font-size: 16px; line-height: 1.6; text-align: left; position: relative;">
                     <strong>【〈圓山附近〉日記】</strong><br>
                     昭和三年 某月某日 未明<br>
@@ -1358,7 +1177,6 @@ function enterPainting(exKey, pIndex) {
             `;
         }
 
-        // 3. 尋寶畫布：處理多個目標
         let targetsHTML = '';
         let allFound = p.targets.every(t => t.found);
 
@@ -1374,58 +1192,38 @@ function enterPainting(exKey, pIndex) {
 
         let hintText = allFound ? "✅ 已尋獲此畫所有關鍵元素！" : `尋找畫作中的：${p.targets.filter(t => !t.found).map(t => `「${t.target}」`).join(' 與 ')}`;
 
-        // 💡 核心修改：重新排列 contentHTML 的組合順序
         contentHTML = `
-            <!-- 1. 提示文字在最上方 -->
-            <p style="text-align:center; margin-top: 0; margin-bottom: 10px; color: #f1c40f; font-weight: bold; letter-spacing: 1px;">
-                ${hintText}
-            </p>
-            
-            <!-- 2. 畫作與感應區在中間 -->
+            <p style="text-align:center; margin-top: 0; margin-bottom: 10px; color: #f1c40f; font-weight: bold; letter-spacing: 1px;">${hintText}</p>
             <div style="text-align: center;">
                 <div style="position: relative; display: inline-block;">
                     <img id="current-painting-img" src="./${p.image}" style="max-width: 650px; max-height: 320px; width: auto; height: auto; display: block; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
                     ${targetsHTML}
                 </div>
             </div>
-            
-            <!-- 3. 日記便條紙移到最下方 -->
             ${diaryHTML}
         `;
     }
     
-    // 4. 將標題與內容組合並渲染到畫面上 (💡 已移除最下方的返回速寫本目錄按鈕)
     document.getElementById('level-container').innerHTML = `
         ${headerHTML}
         ${contentHTML}
     `;
-
 }
     
 function findTarget(exKey, pIndex, tIndex = 0) {
     const p = exhibitions[exKey].paintings[pIndex];
-    const t = p.targets[tIndex]; // 鎖定玩家剛剛點擊的具體目標
+    const t = p.targets[tIndex]; 
 
     if (!t.found) {
-        t.found = true; // 將該目標標記為已探索完成
-        
-        // 分流處理邏輯 (已移除彈出視窗)
+        t.found = true; 
         if (exKey === 'taiten1' && pIndex === 0) {
-            // 原本這裡有 customAlert("【重溫記憶】...")，現在直接更新畫面
             enterPainting(exKey, pIndex);
         } else {
-            // 處理素材收集
-            if (!gameState.materials.includes(t.target)) {
-                gameState.materials.push(t.target);
-            }
-            // 原本這裡有 customAlert(`【獲得素材】：${t.target}`)，現在直接更新畫面
+            if (!gameState.materials.includes(t.target)) { gameState.materials.push(t.target); }
             enterPainting(exKey, pIndex); 
         }
         
-        // 💡 檢查該屆展覽的所有畫作是否都已探索完畢
-        const isExhibitionCleared = exhibitions[exKey].paintings.every(pt => 
-            pt.targets.every(tgt => tgt.found)
-        );
+        const isExhibitionCleared = exhibitions[exKey].paintings.every(pt => pt.targets.every(tgt => tgt.found));
 
         if (isExhibitionCleared && !gameState.clearedLevels[exKey]) {
             gameState.clearedLevels[exKey] = true;
@@ -1433,141 +1231,345 @@ function findTarget(exKey, pIndex, tIndex = 0) {
                 gameState.characters['lin'].unlocked = true; 
                 gameState.characters['chen'].unlocked = true;
             }
-            
-            // 💡 建議保留這個：當「整屆」展覽看完時，給予一次性的重大進度提示
-            setTimeout(() => { 
-                customAlert(`恭喜！${exhibitions[exKey].title} 探索完畢！\n(人物關係圖已更新)`); 
-                returnToRoom(); 
-            }, 500);
+            setTimeout(() => { customAlert(`恭喜！${exhibitions[exKey].title} 探索完畢！\n(人物關係圖已更新)`); returnToRoom(); }, 500);
         }
     }
 }
 
+// --- 6. 終局四階段 (天秤 -> 調色 -> 拼局部 -> 落款) ---
+let matchedCount = 0; 
 
-// --- 6. 終局三階段 ---
-let solvedPieces = 0; let matchedCount = 0;
+// 💡 階段 0：天秤遊戲的資料與狀態 (共 9 個法碼)
+let scaleState = { pool: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9'], left: [], right: [] };
+
+const scaleData = {
+    w1: { text: '選擇自己家附近的景觀為主題', correct: 'left' },
+    w2: { text: '展現屬於台灣城市的現代性', correct: 'left' },
+    w3: { text: '透過中元節展現台、日的不同之處', correct: 'left' },
+    w4: { text: '迎合日本對南洋風貌的想像', correct: 'right' },
+    w5: { text: '展現殖民下的繁榮城市', correct: 'right' },
+    w6: { text: '展現台灣的民俗符號', correct: 'right' },
+    w7: { text: '精準的單點透視法', correct: 'none' },
+    w8: { text: '抵抗日本與西洋美術的色彩影響', correct: 'none' },
+    w9: { text: '記錄「城隍祭」陣頭遶境的盛況', correct: 'none' }
+};
 
 function startFinalPuzzle() {
-    // 💡 核心修改：如果還沒達到解鎖條件，跳出詳細的引導提示
     if (!gameState.flags.finalUnlocked) {
         customAlert("畫布前似乎還缺少了些什麼...\n\n請確認你是否已經：\n1. 參觀完三屆臺展並收集靈感素材\n2. 填空並閱讀完三份報紙短評\n3. 閱讀桌上所有的信件與日記");
-        return; // 顯示完提示後，中斷函式，不讓玩家進入下一關
+        return; 
     }
-    
-    // 如果 gameState.flags.finalUnlocked 已經是 true，就會順利執行到這裡
     showScene('sub-level'); 
-    renderPhase1_Puzzle();
+    renderPhase0_BalanceGame(); 
 }
 
-function renderPhase1_Puzzle() {
-    solvedPieces = 0;
-    let html = `<h2>完成《南街殷賑》：第一階段</h2><p style="text-align:center;">將散落的畫作記憶拼湊完整吧。</p><div class="puzzle-grid">`;
+function renderPhase0_BalanceGame() {
+    scaleState = { pool: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9'], left: [], right: [] };
     
-    // 【修改重點】：改用百分比定位。無論容器長寬多少，都能完美切出四個角落！
-    const positions = [
-        "0% 0%",        // 左上角
-        "100% 0%",      // 右上角
-        "0% 100%",      // 左下角
-        "100% 100%"     // 右下角
-    ];
+    let html = `
+        <h2>完成《南街殷賑》：第一階段 (內心的平衡)</h2>
+        <p style="text-align:center; font-size:14px; margin-top:0; color:#ddd;">郭雪湖在畫布上進行了一場巧妙的文化協商。請分辨哪些是他自身的「鄉土意識」，哪些是迎合官方的「地方色」。<br><span style="color:#f1c40f;">(💡 請直接用滑鼠或手指「拖曳」法碼放上天秤。注意：有些是錯誤迷思，請留在下方)</span></p>
+        
+        <div style="position: relative; width: 500px; height: 180px; margin: 10px auto;">
+            <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 120px; background: #5d4037; border-radius: 8px 8px 0 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5);"></div>
+            <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 70px; height: 12px; background: #3e2723; border-radius: 5px;"></div>
+            
+            <div id="scale-beam" style="position: absolute; top: 45px; left: 50%; width: 440px; height: 8px; background: #d4af37; transform: translateX(-50%) rotate(0deg); transform-origin: center center; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                
+                <div id="pan-left-wrapper" class="drop-zone" style="position: absolute; left: 0; top: 4px; transform: translateX(-50%) rotate(0deg); text-align: center; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); width: 220px;">
+                    <div style="display: flex; justify-content: space-between; width: 150px; margin: 0 auto;">
+                        <div style="width: 2px; height: 30px; background: #ccc;"></div>
+                        <div style="width: 2px; height: 30px; background: #ccc;"></div>
+                    </div>
+                    <div style="background: rgba(93, 64, 55, 0.95); border-radius: 0 0 10px 10px; padding-bottom: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.8); min-height: 80px;">
+                        <div style="color: #f4e4bc; font-weight: bold; font-size: 13px; padding: 6px 0; border-bottom: 2px dashed #8d6e63;">畫家的鄉土意識</div>
+                        <div id="pan-left" style="display: flex; flex-direction: column; gap: 5px; padding: 8px; align-items: center; pointer-events: none;"></div>
+                    </div>
+                </div>
+                
+                <div id="pan-right-wrapper" class="drop-zone" style="position: absolute; right: 0; top: 4px; transform: translateX(50%) rotate(0deg); text-align: center; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); width: 220px;">
+                    <div style="display: flex; justify-content: space-between; width: 150px; margin: 0 auto;">
+                        <div style="width: 2px; height: 30px; background: #ccc;"></div>
+                        <div style="width: 2px; height: 30px; background: #ccc;"></div>
+                    </div>
+                    <div style="background: rgba(93, 64, 55, 0.95); border-radius: 0 0 10px 10px; padding-bottom: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.8); min-height: 80px;">
+                        <div style="color: #f4e4bc; font-weight: bold; font-size: 13px; padding: 6px 0; border-bottom: 2px dashed #8d6e63;">總督府的地方色</div>
+                        <div id="pan-right" style="display: flex; flex-direction: column; gap: 5px; padding: 8px; align-items: center; pointer-events: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="pool-zone" class="drop-zone" style="height: 170px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 5px; padding: 10px; margin-top: 100px;">
+            <div id="weight-pool" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: 60px; pointer-events: none;"></div>
+        </div>
+    `;
+    
+    document.getElementById('level-container').innerHTML = html;
+    updateScaleUI();
+}
 
-    // 動態生成 4 個拼圖區塊，並套用剛剛設定的百分比背景位置
-    for(let i = 0; i < 4; i++) {
-        html += `<div class="puzzle-piece" style="background-position: ${positions[i]};" onclick="solvePiece(this)"></div>`;
+// 請找到這段函式並進行調整
+function createWeightHTML(id) {
+    const item = scaleData[id];
+    return `
+        <div id="weight-${id}" 
+             onpointerdown="startDragWeight(event, '${id}')" 
+             style="
+                background: #eaddc5;
+                border: 2px solid #8d6e63;
+                border-radius: 4px;
+                padding: 8px;
+                color: #2c1e14;
+                font-size: 13px;
+                font-weight: bold;
+                width: 200px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                line-height: 1.4;
+                text-align: left;
+                cursor: grab;
+                touch-action: none;
+                pointer-events: auto;
+
+                /* 防止拖曳時反白 */
+                user-select: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+             ">
+            ${item.text}
+
+            <div style="
+                margin-top: 5px;
+                text-align: center;
+                pointer-events: none;
+                opacity: 0.5;
+                font-size: 10px;
+            "></div>
+        </div>
+    `;
+}
+
+let activeDragId = null;
+let dragEl = null;
+let dragStartX = 0, dragStartY = 0;
+let dragStartLeft = 0, dragStartTop = 0;
+
+function startDragWeight(e, id) {
+    e.preventDefault();
+    
+    if (e.button !== 0 && e.type.includes('mouse')) return;
+    
+    activeDragId = id;
+    const originalEl = document.getElementById(`weight-${id}`);
+    const rect = originalEl.getBoundingClientRect();
+    
+    dragEl = originalEl.cloneNode(true);
+    dragEl.style.position = 'fixed';
+    dragEl.style.left = rect.left + 'px';
+    dragEl.style.top = rect.top + 'px';
+    dragEl.style.width = rect.width + 'px';
+    dragEl.style.zIndex = 10000;
+    dragEl.style.pointerEvents = 'none'; 
+    dragEl.style.opacity = '0.9';
+    dragEl.style.transform = 'scale(1.05)';
+    dragEl.style.cursor = 'grabbing';
+    document.body.appendChild(dragEl);
+    
+    originalEl.style.opacity = '0.3'; 
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragStartLeft = rect.left;
+    dragStartTop = rect.top;
+    
+    document.addEventListener('pointermove', onDragWeightMove);
+    document.addEventListener('pointerup', onDragWeightEnd);
+    document.addEventListener('pointercancel', onDragWeightEnd);
+}
+
+function onDragWeightMove(e) {
+    if (!dragEl) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    dragEl.style.left = (dragStartLeft + dx) + 'px';
+    dragEl.style.top = (dragStartTop + dy) + 'px';
+}
+
+function onDragWeightEnd(e) {
+    if (!dragEl) return;
+    
+    document.removeEventListener('pointermove', onDragWeightMove);
+    document.removeEventListener('pointerup', onDragWeightEnd);
+    document.removeEventListener('pointercancel', onDragWeightEnd);
+    
+    const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+    let dropZone = elemBelow ? elemBelow.closest('.drop-zone') : null;
+    
+    let currentLoc = scaleState.left.includes(activeDragId) ? 'left' : (scaleState.right.includes(activeDragId) ? 'right' : 'pool');
+    let target = currentLoc; 
+    
+    if (dropZone) {
+        if (dropZone.id === 'pan-left-wrapper') target = 'left';
+        else if (dropZone.id === 'pan-right-wrapper') target = 'right';
+        else if (dropZone.id === 'pool-zone') target = 'pool';
     }
     
-    html += `</div>`;
+    dragEl.remove();
+    dragEl = null;
+    
+    assignWeight(activeDragId, target);
+    activeDragId = null;
+    
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
+}
+
+function assignWeight(id, target) {
+    scaleState.pool = scaleState.pool.filter(w => w !== id);
+    scaleState.left = scaleState.left.filter(w => w !== id);
+    scaleState.right = scaleState.right.filter(w => w !== id);
+
+    if (target === 'left') scaleState.left.push(id);
+    else if (target === 'right') scaleState.right.push(id);
+    else scaleState.pool.push(id);
+
+    updateScaleUI();
+}
+
+function updateScaleUI() {
+    document.getElementById('weight-pool').innerHTML = scaleState.pool.map(id => createWeightHTML(id)).join('');
+    document.getElementById('pan-left').innerHTML = scaleState.left.map(id => createWeightHTML(id)).join('');
+    document.getElementById('pan-right').innerHTML = scaleState.right.map(id => createWeightHTML(id)).join('');
+    
+    let tilt = (scaleState.right.length - scaleState.left.length) * 8;
+    
+    // 💡 角度安全鎖限制
+    if (tilt > 15) tilt = 15;
+    if (tilt < -5) tilt = -5;
+    
+    document.getElementById('scale-beam').style.transform = `translateX(-50%) rotate(${tilt}deg)`;
+    document.getElementById('pan-left-wrapper').style.transform = `translateX(-50%) rotate(${-tilt}deg)`;
+    document.getElementById('pan-right-wrapper').style.transform = `translateX(50%) rotate(${-tilt}deg)`;
+    
+    if (scaleState.left.length + scaleState.right.length === 6) {
+        setTimeout(() => {
+            if (scaleState.left.length === 3 && scaleState.right.length === 3) {
+                let leftCorrect = scaleState.left.every(w => scaleData[w].correct === 'left');
+                let rightCorrect = scaleState.right.every(w => scaleData[w].correct === 'right');
+                
+                if (leftCorrect && rightCorrect) {
+                    customAlert("完美平衡！\n你成功在官方的「地方色」框架中，偷渡了臺灣人的「鄉土情懷」，並排除了不實的歷史迷思！");
+                    setTimeout(renderPhase1_HueAdjustment, 2000); 
+                } else {
+                    customAlert("重心似乎不對...\n雖然數量平衡，但歷史的元素被錯置了，或是放上了不符合史實的敘述，請將它們取下重新思考。");
+                }
+            } else {
+                customAlert("天秤失去平衡！\n左右兩側的元素比重必須對等。");
+            }
+        }, 600); 
+    }
+}
+
+// === 第二階段：色彩校正 ===
+function renderPhase1_HueAdjustment() {
+    let html = `
+        <h2>完成《南街殷賑》：第二階段 (色彩修復)</h2>
+        <p style="text-align:center;">畫布的色彩尚未成形。<br>請左右拖曳滑桿，參考左側記憶中的原色，將右側畫布的色調調和至完美。</p>
+        
+        <div style="display: flex; justify-content: center; gap: 30px; margin-top: 20px;">
+            <div style="text-align: center;">
+                <h3 style="color: #d4af37; margin-bottom: 10px;">記憶中的原色</h3>
+                <div style="width: 240px; height: 450px; background-image: url('final.png'); background-size: cover; background-position: center; border: 2px solid #555;"></div>
+            </div>
+
+            <div style="text-align: center;">
+                <h3 style="color: #f1c40f; margin-bottom: 10px;">修復中的畫布</h3>
+                <div id="hue-target-img" style="width: 240px; height: 450px; background-image: url('final.png'); background-size: cover; background-position: center; border: 2px solid #f1c40f; filter: hue-rotate(-180deg);"></div>
+            </div>
+        </div>
+        
+        <div style="width: 70%; margin: 30px auto; text-align: center;">
+            <input type="range" id="hue-slider" min="0" max="360" value="60" style="width: 100%; cursor: pointer;" oninput="updateHue(this.value)">
+            <button class="action-btn" style="margin-top: 20px; font-size: 18px; padding: 12px 30px;" onclick="checkHueMatch()">確認調色</button>
+        </div>
+    `;
+    
     document.getElementById('level-container').innerHTML = html;
 }
 
-function solvePiece(el) {
-    if (!el.classList.contains('solved')) {
-        el.classList.add('solved'); 
-        solvedPieces++;
-        if (solvedPieces === 4) {
-            setTimeout(() => { 
-                customAlert("拼圖完成！畫作底稿已確立，接下來注入靈感素材吧！"); 
-                renderPhase2_Match(); 
-            }, 600);
-        }
+function updateHue(val) {
+    let hue = val - 240;
+    document.getElementById('hue-target-img').style.filter = `hue-rotate(${hue}deg)`;
+}
+
+function checkHueMatch() {
+    const val = parseInt(document.getElementById('hue-slider').value, 10);
+    
+    if (val >= 225 && val <= 255) {
+        document.getElementById('hue-target-img').style.filter = `hue-rotate(0deg)`; 
+        document.getElementById('hue-slider').disabled = true; 
+        
+        setTimeout(() => { 
+            customAlert("色彩調和完美！畫作底圖已確立，接下來注入靈感素材吧！"); 
+            renderPhase2_Match(); 
+        }, 500);
+    } else {
+        customAlert("顏色似乎還有點偏差... \n試著往右邊微調看看，讓兩邊的色調完全一致！");
     }
 }
 
-// --- 最終關卡：第二階段 (分類局部拼圖) ---
+// === 第三階段：靈感拼圖 ===
 function renderPhase2_Match() {
     selectedFragIndex = null;
     placedCount = 0;
-    currentCategory = '南洋元素'; // 預設顯示南洋元素
+    currentCategory = '南洋元素'; 
     finalFragments.forEach(f => f.placed = false);
 
-    // 1. 生成畫布上全部 9 個目標感應區
     let targetsHTML = '';
     finalFragments.forEach((f, idx) => {
-        targetsHTML += `
-            <div id="target-${idx}" class="final-target" 
-                 style="top:${f.top}; left:${f.left}; width:${f.w}; height:${f.h};" 
-                 onclick="clickFinalTarget(${idx})">
-            </div>
-        `;
+        targetsHTML += `<div id="target-${idx}" class="final-target" style="top:${f.top}; left:${f.left}; width:${f.w}; height:${f.h};" onclick="clickFinalTarget(${idx})"></div>`;
     });
 
-// 2. 建立主要的 HTML 結構
     let html = `
-        <h2>完成《南街殷賑》：注入靈感</h2>
-        <p style="text-align:center; margin-top:0;">請切換下方元素分類，找出局部畫面並放回畫布中！<br><span style="font-size:12px; color:#aaa;">(💡 畫作較長，可以在畫面上<b>上下滑動</b>來尋找位置)</span></p>
-        
-        <!-- 💡 核心修改：建立一個固定高度、可上下滑動的視窗容器 -->
+        <h2>完成《南街殷賑》：第三階段 (注入靈感)</h2>
+        <p style="text-align:center; margin-top:0;">請切換下方元素分類，先點擊局部畫面再放回畫布中！<br><span style="font-size:12px; color:#aaa;">(💡 畫作較長，可以在畫面上<b>上下滑動</b>來尋找位置)</span></p>
         <div style="width: 100%; height: 350px; overflow-y: auto; border: 2px solid #8d6e63; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); margin-bottom: 15px; background: #222; box-sizing: border-box;">
-            <!-- 讓內部的畫布寬度填滿，高度自動等比例放大 -->
             <div style="position: relative; width: 100%;">
                 <img src="./final.png" style="width: 100%; height: auto; display: block; filter: sepia(0.3);">
                 ${targetsHTML}
             </div>
         </div>
-        
-        <!-- 分類按鈕區 -->
         <div class="category-tabs" id="category-tabs"></div>
-        
-        <!-- 動態碎片顯示區 -->
         <div class="fragment-grid" id="fragment-grid"></div>
     `;
     
     document.getElementById('level-container').innerHTML = html;
-    updateCategoryUI(); // 畫出按鈕與第一組碎片
-    
+    updateCategoryUI(); 
 }
 
-// 點擊分類按鈕時觸發的函式
 function switchCategory(cat) {
     currentCategory = cat;
     selectedFragIndex = null; 
     updateCategoryUI();       
 }
 
-// 動態更新下方分類按鈕與碎片的函式
 function updateCategoryUI() {
    const categories = ['臺灣特產元素', '傳統信仰元素', '日本殖民元素', '南洋元素'];
-    
-    let tabsHTML = categories.map(cat => `
-        <button class="tab-btn ${currentCategory === cat ? 'active' : ''}" onclick="switchCategory('${cat}')">${cat}</button>
-    `).join('');
-    document.getElementById('category-tabs').innerHTML = tabsHTML;
-    
-    let fragsHTML = '';
-    finalFragments.forEach((f, idx) => {
-        if (f.category === currentCategory) {
-            fragsHTML += `
-                <div id="frag-${idx}" class="fragment-slot ${f.placed ? 'placed' : ''}" 
-                     style="background-image: url('${f.img}');" 
-                     onclick="selectFragment(${idx})">
-                </div>
-            `;
-        }
-    });
-    document.getElementById('fragment-grid').innerHTML = fragsHTML;
+   let tabsHTML = categories.map(cat => `<button class="tab-btn ${currentCategory === cat ? 'active' : ''}" onclick="switchCategory('${cat}')">${cat}</button>`).join('');
+   document.getElementById('category-tabs').innerHTML = tabsHTML;
+   
+   let fragsHTML = '';
+   finalFragments.forEach((f, idx) => {
+       if (f.category === currentCategory) {
+           fragsHTML += `<div id="frag-${idx}" class="fragment-slot ${f.placed ? 'placed' : ''}" style="background-image: url('${f.img}');" onclick="selectFragment(${idx})"></div>`;
+       }
+   });
+   document.getElementById('fragment-grid').innerHTML = fragsHTML;
 }
 
-// 玩家點擊下方碎片
 function selectFragment(idx) {
     if (finalFragments[idx].placed) return; 
     document.querySelectorAll('.fragment-slot').forEach(el => el.classList.remove('selected'));
@@ -1575,59 +1577,39 @@ function selectFragment(idx) {
     selectedFragIndex = idx;
 }
 
-// 玩家點擊畫布上的目標
-// 玩家點擊畫布上的目標
 function clickFinalTarget(targetIdx) {
-    if (selectedFragIndex === null) {
-        customAlert("請先從下方點選一張局部碎片！");
-        return;
-    }
-
+    if (selectedFragIndex === null) { customAlert("請先從下方點選一張局部碎片！"); return; }
     if (selectedFragIndex === targetIdx) {
         const f = finalFragments[targetIdx];
         f.placed = true;
         placedCount++;
-        
         const targetEl = document.getElementById(`target-${targetIdx}`);
-        // 加上 matched 類別，CSS 就會自動把它「框起來」並發光
         targetEl.classList.add('matched');
-        
-        // 💡 核心修改：已經將這兩行刪除，不再載入與替換背景圖片
-        // targetEl.style.backgroundImage = `url('${f.img}')`;
-        // targetEl.style.backgroundSize = "100% 100%";
-        
         updateCategoryUI();
         selectedFragIndex = null;
         
         if (placedCount === 9) {
-            setTimeout(() => { 
-                customAlert("所有細節皆已完美就位！南街殷賑的風華再現！"); 
-                renderPhase3_Signature(); 
-            }, 800);
+            setTimeout(() => { customAlert("所有細節皆已完美就位！南街殷賑的風華再現！"); renderPhase3_Signature(); }, 800);
         }
     } else {
         customAlert("這張局部圖片似乎不屬於這個位置...");
     }
 }
 
+// === 第四階段：正式落款 ===
 function renderPhase3_Signature() {
     document.getElementById('level-container').innerHTML = `
         <h2>完成《南街殷賑》：最終階段</h2>
         <p style="text-align:center;">根據一路上的線索，你想起真正的畫名了嗎？</p>
-        
-        <!-- 新增：提示字眼與警告 -->
         <p style="text-align:center; color:#e74c3c; font-weight:bold; margin-top:15px;">
             ⚠️ 注意：你只有一次落筆的機會！一旦寫錯將無法更改。<br>
             <span style="font-size:14px; color:#aaa;">(💡 提示：請翻閱課本找尋答案)</span>
         </p>
-        
         <input type="text" id="artist-name" placeholder="請輸入畫家姓名落款" style="display:block; margin:20px auto; padding:10px; text-align:center; font-size:16px;">
         <button id="signature-btn" class="action-btn" onclick="checkSignature()">正式落筆</button>
     `;
 }
 
-// 替換原本的 checkSignature 函數
-// === 修改：落款判定與結果傳送 (進入等待畫面時隱藏遊玩場景) ===
 async function checkSignature() {
     const inputEl = document.getElementById('artist-name');
     const btnEl = document.getElementById('signature-btn');
@@ -1642,7 +1624,6 @@ async function checkSignature() {
     const gameStatus = isCorrect ? "成功" : "失敗";
     const finalTime = stopSpeedrunTimer();
 
-    // 1. 傳送結果到後台
     try {
         await fetch(API_URL, {
             ...fetchOptions,
@@ -1652,14 +1633,10 @@ async function checkSignature() {
         });
     } catch(e) { console.log("上傳失敗", e); }
 
-    // 2. 顯示等待老師結算的畫面
     document.getElementById('waiting-screen').style.display = 'flex';
-    
-    // 💡 核心修改：徹底隱藏所有遊玩場景的畫面，不再顯示於背景
     document.getElementById('main-room').style.display = 'none';
     document.getElementById('sub-level').style.display = 'none';
 
-    // 3. 開始不斷向後台詢問「老師按下結束了沒？」
     pollEndGameStatus();
 }
 
@@ -1670,9 +1647,8 @@ function pollEndGameStatus() {
             const result = await response.json();
             
             if (result.isEnded) {
-                clearInterval(interval); // 停止詢問
+                clearInterval(interval); 
                 
-                // 遊戲結束，揭曉成績！
                 const waitingBox = document.getElementById('waiting-box');
                 document.getElementById('waiting-spinner').style.display = 'none';
                 document.getElementById('waiting-title').innerText = "結算完成！";
@@ -1692,45 +1668,33 @@ function pollEndGameStatus() {
                 }
             }
         } catch(e) { console.log("檢查狀態中..."); }
-    }, 5000); // 每 5 秒檢查一次
+    }, 5000); 
 }
 
-// --- 7. 背景檢查員 ---
 function checkRoomState() {
     if (gameState.clearedLevels.taiten1 && !gameState.flags.news1Unlocked) { gameState.flags.news1Unlocked = true; document.getElementById('item2').classList.add('flashing'); }
     if (gameState.clearedLevels.taiten2 && !gameState.flags.news2Unlocked) { gameState.flags.news2Unlocked = true; document.getElementById('item2').classList.add('flashing'); }
     if (gameState.clearedLevels.taiten3 && !gameState.flags.news3Unlocked) { gameState.flags.news3Unlocked = true; document.getElementById('item2').classList.add('flashing'); }
     
-    // 確認 3 份報紙是否都已經解出來了
     const allNewsRead = gameState.flags.news1Read && gameState.flags.news2Read && gameState.flags.news3Read;
-    // 確認 4 封信件是否都已經點開看過了
     const allLettersRead = gameState.flags.teacherRead && gameState.flags.dropoutRead && gameState.flags.diary1Read && gameState.flags.diary2Read;
 
-    // 將報紙與信件的已讀狀態，加入最終解鎖條件中
     if (gameState.clearedLevels.taiten3 && gameState.materials.length >= 4 && allNewsRead && allLettersRead && !gameState.flags.finalUnlocked) {
         gameState.flags.finalUnlocked = true;
         const easel = document.getElementById('item6');
         easel.style.opacity = "1"; 
         easel.style.cursor = "pointer"; 
-        
-        // 💡 核心修改：在解鎖的瞬間，動態將背景圖片替換為 frame2.png
         easel.style.backgroundImage = "url('frame2.png')"; 
-        
         easel.classList.add('flashing');
     }
 }
-// --- 8. 拆信刀「由右至左劃開」物理邏輯與展開動畫 ---
-let isCutting = false;
-let cutProgress = 0; 
-let startMouseX = 0; 
-let hasTorn = false; // 💡 新增：防重複觸發動畫的終極鎖
+
+let isCutting = false; let cutProgress = 0; let startMouseX = 0; let hasTorn = false; 
 
 function startCutting(e) {
     if (hasTorn || cutProgress >= 85) return;  
-    
     isCutting = true;
     startMouseX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    
     let opener = document.getElementById('letter-opener');
     if (opener) opener.style.transform = "rotate(-15deg)";
 }
@@ -1739,7 +1703,6 @@ function sawCutting(e) {
     if (!isCutting || hasTorn) return;
     if (e.type.includes('touch') && e.cancelable) e.preventDefault(); 
     
-    // 💡 核心修復：使用 requestAnimationFrame 讓 JS 座標計算與螢幕刷新率同步，達到 60FPS 的滑順感
     requestAnimationFrame(() => {
         let currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
         let totalDistance = startMouseX - currentX;
@@ -1748,21 +1711,17 @@ function sawCutting(e) {
             cutProgress = (totalDistance / 200) * 100; 
             if (cutProgress > 100) cutProgress = 100;
             
-            // 現在 CSS 移除了動畫，這裡的更新會瞬間完成，毫無卡頓！
             document.getElementById('cut-trail').style.width = cutProgress + '%';
             document.getElementById('letter-opener').style.right = cutProgress + '%';
 
             if (cutProgress >= 85 && !hasTorn) {
-                hasTorn = true; // 上鎖，確保只會撕開一次
+                hasTorn = true; 
                 isCutting = false;
-                
                 cutProgress = 100;
                 document.getElementById('cut-trail').style.width = '100%';
                 document.getElementById('letter-opener').style.right = '100%';
-                
                 let opener = document.getElementById('letter-opener');
                 if (opener) opener.style.transform = "rotate(0deg)";
-                
                 tearEnvelope(); 
             }
         }
@@ -1776,80 +1735,47 @@ function stopCutting() {
     if (opener) opener.style.transform = "rotate(0deg)";
 }
 
-// 💡 這是上次不小心遺失的動畫函式，我們完整加回來
 function tearEnvelope() {
-    // 動作 1：撕開信封 (上下分開)
     document.getElementById('env-top').classList.add('torn');
     document.getElementById('env-bottom').classList.add('torn');
-    
-    // 讓拆信刀一起淡出消失
-    setTimeout(() => {
-        const opener = document.getElementById('letter-opener');
-        if (opener) opener.classList.add('torn'); 
-    }, 400); 
-    
-    // 動作 2：撕開後等待 0.8 秒，開始「抽出信件」
-    setTimeout(() => {
-        document.getElementById('letter-paper').classList.add('pulled');
-    }, 800);
-    
-    // 動作 3：抽出後再等待 0.8 秒，開始「攤開信紙」
-    setTimeout(() => {
-        document.getElementById('letter-paper').classList.add('unfolded');
-    }, 1600);
-    
-    // 動作 4：攤平後等待 0.8 秒，讓「文字浮現」，並把不需要的信封隱藏
+    setTimeout(() => { const opener = document.getElementById('letter-opener'); if (opener) opener.classList.add('torn'); }, 400); 
+    setTimeout(() => { document.getElementById('letter-paper').classList.add('pulled'); }, 800);
+    setTimeout(() => { document.getElementById('letter-paper').classList.add('unfolded'); }, 1600);
     setTimeout(() => {
         document.getElementById('letter-content').classList.add('revealed');
         document.getElementById('env-top').style.display = 'none';
         document.getElementById('env-bottom').style.display = 'none';
-        
-        // 徹底從網頁中移除刀子，避免殘留透明的物件擋住玩家點擊
         const opener = document.getElementById('letter-opener');
         if (opener) opener.style.display = 'none'; 
     }, 2400);
 }
-    // --- 9. 展覽布幕動畫邏輯 ---
+    
 function openWithCurtain(exKey) {
     const curtain = document.getElementById('curtain-container');
     const leftCurtain = document.getElementById('curtain-left');
     const rightCurtain = document.getElementById('curtain-right');
     
-    // 1. 顯示布幕容器 (此時布幕正躲在畫面兩側)
     curtain.style.display = 'block';
-    
-    // 強制瀏覽器重繪，確保接下來的 CSS 動畫會生效
     curtain.offsetHeight; 
-    
-    // 2. 閉合布幕 (雙方往中間位移到 0%)
     leftCurtain.style.transform = 'translateX(0%)';
     rightCurtain.style.transform = 'translateX(0%)';
     
-    // 3. 等待布幕完全閉合 (1.2 秒) 後，進行場景切換
     setTimeout(() => {
-        // 在布幕背後，偷偷載入該屆展覽的第一幅畫作
         enterPainting(exKey, 0);
-        
-        // 4. 場景就緒，再次拉開布幕！
         leftCurtain.style.transform = 'translateX(-100%)';
         rightCurtain.style.transform = 'translateX(100%)';
-        
-        // 5. 等待拉開動畫結束後，將布幕容器隱藏，徹底淨空畫面
-        setTimeout(() => {
-            curtain.style.display = 'none';
-        }, 1200);
-        
-    }, 1200); // 這個 1200 毫秒對應了我們 CSS 裡的 1.2s 動畫時間
+        setTimeout(() => { curtain.style.display = 'none'; }, 1200);
+    }, 1200); 
 }
-/*    
+    
 window.onload = function() {
-    // 如果筆記本裡有存時間，代表玩家玩到一半重新整理了
     if (localStorage.getItem('speedrunStartTime')) {
-        // 直接在黑畫面也把計時器顯示出來並繼續跑
         startSpeedrunTimer();
     }
 };
-*/
+
+
+
 </script>
 </body>
 </html>
