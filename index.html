@@ -997,7 +997,7 @@ function startNewspaperPuzzle(level) {
         contentHTML = `
             「本島其實有許多優秀的題材，期望今後的藝術可以表現臺灣獨特的 <span class="blank-slot" data-answer="色彩" onclick="fillSlot(this)">___</span> 與光熱。就如同東都（東京）有東都的、京都有京都的、大阪有大阪的各自的鄉土藝術一樣，希望本島也能完成屬於自己的 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 。」
         `;
-        const words = ["色彩", "光熱", "鄉土藝術", "筆觸", "現代主義"];
+        const words = ["色彩", "鄉土藝術", "筆觸", "現代主義"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w2_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     }
     else if (level === 3) {
@@ -1005,7 +1005,7 @@ function startNewspaperPuzzle(level) {
         contentHTML = `
             「若能直言不諱吾人的希望，願臺展是臺灣 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 的結晶，換言之，作品必須以能充分展現臺灣 <span class="blank-slot" data-answer="地方色" onclick="fillSlot(this)">___</span> 之物為題材來發揮臺展的特色。當然，嚴格來說，臺灣尚未擁有真正的鄉土藝術，勉強來說，源自漳州藝術、泉州藝術之流，從殘留在臺中州鹿港的建築物可一窺其基幹，或是遍布島內的寺或孔子廟等等 <span class="blank-slot" data-answer="廟宇" onclick="fillSlot(this)">___</span> 建築為其代表，然而，就繪畫而言，漳州藝術實無任何特色可言。」
         `;
-        const words = ["地方色", "鄉土藝術", "廟宇", "特色", "寫生"];
+        const words = ["地方色", "鄉土藝術", "廟宇", "寫生"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w3_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     }
 
@@ -1251,7 +1251,6 @@ const scaleData = {
     w6: { text: '展現台灣的民俗符號', correct: 'right' },
     w7: { text: '精準的單點透視法', correct: 'none' },
     w8: { text: '抵抗日本與西洋美術的色彩影響', correct: 'none' },
-    w9: { text: '記錄「城隍祭」陣頭遶境的盛況', correct: 'none' }
 };
 
 function startFinalPuzzle() {
@@ -1264,7 +1263,7 @@ function startFinalPuzzle() {
 }
 
 function renderPhase0_BalanceGame() {
-    scaleState = { pool: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9'], left: [], right: [] };
+    scaleState = { pool: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8'], left: [], right: [] };
     
     let html = `
         <h2>完成《南街殷賑》：第一階段 (內心的平衡)</h2>
