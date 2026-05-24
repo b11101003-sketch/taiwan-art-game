@@ -1,3 +1,27 @@
-.title {
-    color: green;
+    /* 只鎖定遊戲的核心互動元件，避開 body 和其他通用容器 */
+.word-btn, 
+.item, 
+.puzzle-piece, 
+.fragment-slot,
+.blank-slot,
+#weight-pool > div,
+#pan-left > div,
+#pan-right > div {
+    /* 鎖定這些元件的文字選取，但不會影響頁面的點擊權限 */
+    -moz-user-select: none;    
+    -ms-user-select: none;     
+    user-select: none;   
+    -webkit-user-select: none;
+    
+    /* 移除點擊時的藍色高光 */
+    -webkit-tap-highlight-color: transparent;
+    
+    /* 增加這行：讓游標懸停時保持箭頭，避免顯示為文字選取的「I」狀游標 */
+    cursor: default; 
+}
+
+/* 確保這些元件在被按住時不會觸發系統預設的拖拽選取 */
+.word-btn, .fragment-slot {
+    -webkit-user-drag: none;
+ 
 }
