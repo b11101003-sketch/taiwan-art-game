@@ -556,8 +556,122 @@ let myName = "";
 
 const fetchOptions = { method: 'POST', redirect: 'follow', headers: { "Content-Type": "text/plain;charset=utf-8" } };
 
-// 網頁一載入，就去抓取開放的班級
+const gameState = {
+    clearedLevels: { taiten1: false, taiten2: false, taiten3: false },
+    flags: { 
+        childhoodRead: false, lettersRead: false, 
+        news1Unlocked: false, news1Read: false,
+        news2Unlocked: false, news2Read: false,
+        news3Unlocked: false, news3Read: false,
+        finalUnlocked: false, 
+        unlockedLetterCount: 1,
+        teacherRead: false, dropoutRead: false, diary1Read: false, diary2Read: false
+    },
+    materials: [],
+    characters: {
+        'mother': { name: '母親\n陳順', relation: '相依為命', unlocked: false },
+        'teacher': { name: '陳英聲\n老師', relation: '啟蒙恩師', unlocked: false },
+        'master': { name: '雪溪老師', relation: '畫館嚴師', unlocked: false },
+        'xueya': { name: '同門\n雪涯', relation: '切磋畫友', unlocked: false }, 
+        'lin': { name: '林玉山', relation: '台展三少年', unlocked: false },
+        'chen': { name: '陳進', relation: '台展三少年', unlocked: false }
+    }
+};
+
+// === 💡 新增：自動存檔與讀檔系統 ===
+function saveProgress() {
+    // 遊戲還沒報到前不存檔
+    if (!myName) return; 
+    const dataToSave = {
+        school: mySchool,
+        className: myClass,
+        studentName: myName,
+        gameState: gameState // 存入目前的遊戲狀態
+    };
+    localStorage.setItem('nanjiSaveData', JSON.stringify(dataToSave));
+}
+
+function restoreUI() {
+    // 1. 恢復舊玩具的狀態與信件計時器
+    if (gameState.flags.childhoodRead) {
+        document.getElementById('item1').classList.remove('flashing');
+        if (gameState.flags.unlockedLetterCount < 4 && !gameState.letterTimer) {
+            gameState.letterTimer = setInterval(() => {
+                if (gameState.flags.unlockedLetterCount < 4) { 
+                    gameState.flags.unlockedLetterCount++;
+                    customAlert("書桌上似乎有新的信件或日記浮現了...");
+                    if (document.getElementById('letter-list-container')) renderLetterList();
+                } else {
+                    clearInterval(gameState.letterTimer); 
+                }
+            }, 60000); // 1 分鐘
+        }
+    } else {
+        document.getElementById('item1').classList.add('flashing');
+    }
+
+    // 2. 恢復信件堆狀態
+    if (gameState.flags.lettersRead) {
+        document.getElementById('item4').classList.remove('flashing');
+    }
+
+    // 3. 恢復報紙狀態 (有解鎖但還沒讀，就要閃爍)
+    if ((gameState.flags.news1Unlocked && !gameState.flags.news1Read) || 
+        (gameState.flags.news2Unlocked && !gameState.flags.news2Read) || 
+        (gameState.flags.news3Unlocked && !gameState.flags.news3Read)) {
+        document.getElementById('item2').classList.add('flashing');
+    }
+
+    // 4. 恢復畫布狀態
+    if (gameState.flags.finalUnlocked) {
+        const easel = document.getElementById('item6');
+        easel.style.opacity = "1"; 
+        easel.style.cursor = "pointer"; 
+        easel.style.backgroundImage = "url('frame2.png')"; 
+        easel.classList.add('flashing');
+    }
+}
+
+// 網頁一載入，先檢查是否有存檔
 window.addEventListener('load', async () => {
+    
+    // 💡 檢查是否有先前的遊戲進度
+    const savedDataStr = localStorage.getItem('nanjiSaveData');
+    if (savedDataStr) {
+        const savedData = JSON.parse(savedDataStr);
+        
+        // 1. 還原基本資料
+        mySchool = savedData.school;
+        myClass = savedData.className;
+        myName = savedData.studentName;
+        
+        // 2. 還原遊戲進度 (精準覆蓋)
+        gameState.clearedLevels = savedData.gameState.clearedLevels;
+        gameState.flags = savedData.gameState.flags;
+        gameState.materials = savedData.gameState.materials;
+        gameState.characters = savedData.gameState.characters;
+        
+        // 3. 隱藏登入與開場動畫，直接進入主房間
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('audio-toggle').style.display = 'block';
+        document.getElementById('main-room').classList.add('active-scene');
+        
+        // 4. 還原閃爍提示與計時器
+        restoreUI();
+        if (localStorage.getItem('speedrunStartTime')) {
+            startSpeedrunTimer();
+        }
+        
+        // 5. 繼續啟動每 3 秒自動存檔
+        setInterval(saveProgress, 3000);
+        
+        // 背景偷偷抓一下 API 喚醒它，不需要等結果
+        fetch(API_URL, { ...fetchOptions, body: JSON.stringify({ action: 'getClasses' }) });
+        return; // 直接結束，不跑後面的正常載入流程
+    }
+
+    // === 正常載入流程 (沒有存檔的新玩家) ===
     try {
         const response = await fetch(API_URL, { ...fetchOptions, body: JSON.stringify({ action: 'getClasses' }) });
         const result = await response.json();
@@ -595,7 +709,6 @@ async function studentJoinGame() {
         const result = await response.json();
         
         if (result.status === "success") {
-            // 💡 新增：報到成功瞬間立刻啟動計時器！
             startSpeedrunTimer(); 
             
             document.getElementById('login-screen').style.display = 'none';
@@ -607,28 +720,6 @@ async function studentJoinGame() {
         msg.innerText = "連線失敗，請檢查網路。";
     }
 }
-
-const gameState = {
-    clearedLevels: { taiten1: false, taiten2: false, taiten3: false },
-    flags: { 
-        childhoodRead: false, lettersRead: false, 
-        news1Unlocked: false, news1Read: false,
-        news2Unlocked: false, news2Read: false,
-        news3Unlocked: false, news3Read: false,
-        finalUnlocked: false, 
-        unlockedLetterCount: 1,
-        teacherRead: false, dropoutRead: false, diary1Read: false, diary2Read: false
-    },
-    materials: [],
-    characters: {
-        'mother': { name: '母親\n陳順', relation: '相依為命', unlocked: false },
-        'teacher': { name: '陳英聲\n老師', relation: '啟蒙恩師', unlocked: false },
-        'master': { name: '雪溪老師', relation: '畫館嚴師', unlocked: false },
-        'xueya': { name: '同門\n雪涯', relation: '切磋畫友', unlocked: false }, 
-        'lin': { name: '林玉山', relation: '台展三少年', unlocked: false },
-        'chen': { name: '陳進', relation: '台展三少年', unlocked: false }
-    }
-};
 
 const BGM_VOLUME = 0.1; 
 const SFX_VOLUME = 0.8; 
@@ -658,7 +749,16 @@ let speedrunInterval = null;
 
 function startSpeedrunTimer() {
     document.getElementById('speedrun-timer').style.display = 'block';
-    speedrunStartTime = Date.now(); 
+    
+    // 如果有舊的計時紀錄就延續，沒有就產生新的
+    const savedTime = localStorage.getItem('speedrunStartTime');
+    if (savedTime) {
+        speedrunStartTime = parseInt(savedTime, 10);
+    } else {
+        speedrunStartTime = Date.now(); 
+        localStorage.setItem('speedrunStartTime', speedrunStartTime.toString());
+    }
+    
     if (!speedrunInterval) {
         speedrunInterval = setInterval(updateTimer, 1000); 
     }
@@ -675,7 +775,6 @@ function updateTimer() {
 function stopSpeedrunTimer() {
     clearInterval(speedrunInterval); 
     speedrunInterval = null; 
-    localStorage.removeItem('speedrunStartTime');
     return document.getElementById('speedrun-timer').innerText; 
 }
 
@@ -752,6 +851,9 @@ function startGame() {
         document.getElementById('audio-toggle').style.display = 'block'; 
         document.getElementById('main-room').classList.add('active-scene');
         setTimeout(() => document.getElementById('item1').classList.add('flashing'), 2000); 
+        
+        // 💡 遊戲開始後，啟動自動存檔 (每 3 秒存一次)
+        setInterval(saveProgress, 3000);
     }, 1500);
 }
 
@@ -780,7 +882,7 @@ function readChildhood() {
             } else {
                 clearInterval(gameState.letterTimer); 
             }
-        }, 60000); // 💡 信件解鎖時間 (120000 = 2分鐘)
+        }, 60000); 
     }
     
     showScene('sub-level');
@@ -947,7 +1049,6 @@ function renderRelations() {
     });
 }
 
-// --- 4. 報紙與填空遊戲 (拖曳互動版) ---
 // --- 4. 報紙與填空遊戲 (點擊互動版) ---
 let selectedWordObj = null;
 let currentNewsLevel = 0; 
@@ -956,18 +1057,10 @@ function readNewspaper() {
     if (!gameState.flags.childhoodRead) { customAlert("請先點擊閃爍的舊玩具，回憶你的初心。"); return; }
     showScene('sub-level');
     
-    if (gameState.flags.news3Unlocked && !gameState.flags.news3Read) {
-        document.getElementById('item2').classList.remove('flashing');
-        startNewspaperPuzzle(3);
-    } 
-    else if (gameState.flags.news2Unlocked && !gameState.flags.news2Read) {
-        document.getElementById('item2').classList.remove('flashing');
-        startNewspaperPuzzle(2);
-    } 
-    else if (gameState.flags.news1Unlocked && !gameState.flags.news1Read) {
-        document.getElementById('item2').classList.remove('flashing');
-        startNewspaperPuzzle(1);
-    } else {
+    if (gameState.flags.news3Unlocked && !gameState.flags.news3Read) { document.getElementById('item2').classList.remove('flashing'); startNewspaperPuzzle(3); } 
+    else if (gameState.flags.news2Unlocked && !gameState.flags.news2Read) { document.getElementById('item2').classList.remove('flashing'); startNewspaperPuzzle(2); } 
+    else if (gameState.flags.news1Unlocked && !gameState.flags.news1Read) { document.getElementById('item2').classList.remove('flashing'); startNewspaperPuzzle(1); } 
+    else {
         document.getElementById('level-container').innerHTML = `
             <h2>臺灣日日新報</h2>
             <div class="paper-style"><p style="text-align:center;">目前沒有新的展覽報導。</p></div>
@@ -980,7 +1073,6 @@ function startNewspaperPuzzle(level) {
     playPageSound();
     selectedWordObj = null;
     currentNewsLevel = level;
-    
     let title = ""; let contentHTML = ""; let wordsHTML = ""; let imageFile = ""; 
     
     if (level === 1) {
@@ -997,7 +1089,7 @@ function startNewspaperPuzzle(level) {
         contentHTML = `
             「本島其實有許多優秀的題材，期望今後的藝術可以表現臺灣獨特的 <span class="blank-slot" data-answer="色彩" onclick="fillSlot(this)">___</span> 與光熱。就如同東都（東京）有東都的、京都有京都的、大阪有大阪的各自的鄉土藝術一樣，希望本島也能完成屬於自己的 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 。」
         `;
-        const words = ["色彩", "鄉土藝術", "筆觸", "現代主義"];
+        const words = ["色彩" , "鄉土藝術", "筆觸", "現代主義"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w2_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     }
     else if (level === 3) {
@@ -1030,15 +1122,14 @@ function selectWord(btn) {
 
 function fillSlot(slot) {
     if (slot.innerText !== "___") {
-        // 如果已經填了，就把它退回去 (讓使用者點一下可以取消)
         returnWord(slot);
         return;
     }
     if (selectedWordObj) {
         slot.innerText = selectedWordObj.innerText;
         slot.classList.add('filled');
-        selectedWordObj.classList.add('hidden'); // 把選中的詞隱藏
-        slot.setAttribute('data-word-id', selectedWordObj.id); // 記住這格填了哪個詞
+        selectedWordObj.classList.add('hidden'); 
+        slot.setAttribute('data-word-id', selectedWordObj.id); 
         selectedWordObj = null;
         checkPuzzleCompletion();
     }
@@ -1239,8 +1330,7 @@ function findTarget(exKey, pIndex, tIndex = 0) {
 // --- 6. 終局四階段 (天秤 -> 調色 -> 拼局部 -> 落款) ---
 let matchedCount = 0; 
 
-// 💡 階段 0：天秤遊戲的資料與狀態 (共 9 個法碼)
-let scaleState = { pool: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9'], left: [], right: [] };
+let scaleState = { pool: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8'], left: [], right: [] };
 
 const scaleData = {
     w1: { text: '選擇自己家附近的景觀為主題', correct: 'left' },
@@ -1308,7 +1398,6 @@ function renderPhase0_BalanceGame() {
     updateScaleUI();
 }
 
-// 請找到這段函式並進行調整
 function createWeightHTML(id) {
     const item = scaleData[id];
     return `
@@ -1356,8 +1445,20 @@ let dragStartLeft = 0, dragStartTop = 0;
 
 function startDragWeight(e, id) {
     e.preventDefault();
-    
     if (e.button !== 0 && e.type.includes('mouse')) return;
+    
+    // 💡 關鍵修復：防殘影安全鎖！
+    if (dragEl) {
+        dragEl.remove();
+        dragEl = null;
+        document.removeEventListener('pointermove', onDragWeightMove);
+        document.removeEventListener('pointerup', onDragWeightEnd);
+        document.removeEventListener('pointercancel', onDragWeightEnd);
+        if (activeDragId) {
+            let oldEl = document.getElementById(`weight-${activeDragId}`);
+            if (oldEl) oldEl.style.opacity = '1';
+        }
+    }
     
     activeDragId = id;
     const originalEl = document.getElementById(`weight-${id}`);
@@ -1445,7 +1546,6 @@ function updateScaleUI() {
     
     let tilt = (scaleState.right.length - scaleState.left.length) * 8;
     
-    // 💡 角度安全鎖限制
     if (tilt > 15) tilt = 15;
     if (tilt < -5) tilt = -5;
     
@@ -1622,6 +1722,10 @@ async function checkSignature() {
     const isCorrect = (name === "郭雪湖" || name === "雪湖" || name === "郭金火");
     const gameStatus = isCorrect ? "成功" : "失敗";
     const finalTime = stopSpeedrunTimer();
+    
+    // 💡 遊戲通關，清除本機的自動存檔，讓下一位玩家可以重頭開始！
+    localStorage.removeItem('nanjiSaveData');
+    localStorage.removeItem('speedrunStartTime');
 
     try {
         await fetch(API_URL, {
@@ -1766,15 +1870,6 @@ function openWithCurtain(exKey) {
         setTimeout(() => { curtain.style.display = 'none'; }, 1200);
     }, 1200); 
 }
-    
-window.onload = function() {
-    if (localStorage.getItem('speedrunStartTime')) {
-        startSpeedrunTimer();
-    }
-};
-
-
-
 </script>
 </body>
 </html>
