@@ -4,38 +4,57 @@
     <meta charset="UTF-8">
     <title>日治時期畫家解謎：南街殷賑</title>
     <style>
-        /* === 新增：匯入 Google Fonts 手寫字體 === */
-        /* === 新增：匯入 Google Fonts 思源宋體 === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
-        /* === 新增：手寫信件專用樣式 === */
+        
         .handwriting {
-            /* 💡 核心修改：將字體切換為思源宋體 */
             font-family: 'Noto Serif TC', serif;
             font-size: 22px; 
             line-height: 1.8;
             letter-spacing: 2px;
             color: #2c1e14; 
         }
-        :root { --ink: #2c3e50; --paper: #f4e4bc; --bg: #111; }
-        /* 💡 核心修改：將網頁預設字體改為思源宋體 */
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Noto Serif TC', serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
         
-        /* 💡 新增：確保按鈕與輸入框也統一使用思源宋體 */
+        :root { 
+            --ink: #3e2723;       
+            --paper: #fcf7eb;     
+            --bg: #eaddc5;        
+        }
+        
+        body { 
+            margin: 0; 
+            background: var(--bg); 
+            color: var(--ink); 
+            font-family: 'Noto Serif TC', serif; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+        }
+        
         button, input { font-family: 'Noto Serif TC', serif; }
-        /* === 1. 起始頁面 === */
+        
+        /* === 1. 起始頁面與登入畫面 === */
         #start-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; z-index: 9999; transition: opacity 2s ease; text-align: center; }
-        #start-screen h1 { font-size: 2.5em; letter-spacing: 5px; animation: pulse 2.5s infinite; font-weight: normal; }
+        #start-screen h1 { font-size: 2.5em; letter-spacing: 5px; animation: pulse 2.5s infinite; font-weight: normal; color: #fff; }
+        #start-screen p { color: #ccc; }
+
+        #login-screen, #waiting-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(234, 221, 197, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; text-align: center; }
+        .login-box { background: #fcf7eb; padding: 40px; border-radius: 10px; border: 3px solid #8d6e63; color: #2c1e14; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .login-box select, .login-box input { display: block; width: 90%; margin: 15px auto; padding: 10px; font-size: 16px; font-family: 'Noto Serif TC', serif; border: 1px solid #c8b79b; border-radius: 4px; }
+        .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #d4af37; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* === 2. 場景與UI共用 === */
-        .scene { display: none; width: 800px; height: 600px; background: #2c241b; position: relative; border: 4px solid #5d4037; box-shadow: 0 0 30px black; overflow: hidden; }
+        .scene { display: none; width: 800px; height: 600px; background: var(--paper); position: relative; border: 4px solid #8d6e63; box-shadow: 0 0 20px rgba(93, 64, 55, 0.4); overflow: hidden; }
         .active-scene { display: block; }
-        .close-btn { position: absolute; top: 10px; right: 10px; padding: 8px 15px; cursor: pointer; background: #e74c3c; border: none; color: white; font-weight: bold; z-index: 50;}
-
+        .close-btn { position: absolute; top: 10px; right: 10px; padding: 8px 15px; cursor: pointer; background: #e74c3c; border: none; color: white; font-weight: bold; z-index: 50; border-radius: 4px;}
+        
         /* === 3. 主房間背景與圖片物件 === */
         #main-room {
             background-image: url('./main.png');
-            background-size: 800px 600px; /* 固定房間大小 */
-            background-position: top left;          
+            background-size: 800px 600px; 
+            background-position: top left;         
             background-repeat: no-repeat;         
         } 
 
@@ -43,7 +62,6 @@
             position: absolute; 
             cursor: pointer; 
             transition: 0.3s; 
-            /* 讓所有物件的背景圖，都強制維持跟房間一樣的 800x600 大小 */
             background-size: 800px 600px; 
             background-repeat: no-repeat;
         }
@@ -53,37 +71,32 @@
             transform: scale(1.05); 
         }
 
-        /* 
-           【魔法座標設定】
-           width / height：設定為玩家真正可以點擊的區域大小
-           background-position：設定為負數的 (-left, -top) 來抵銷位移，讓圖片完美對齊房間
-        */
         #item1 { top: 490px; left: 650px; width: 120px;  height: 100px;  background-image: url('toy.png'); background-position: -590px -470px; }
         #item2 { top: 495px; left: 0px; width: 175px; height: 125px;  background-image: url('news.png'); background-position: -15px -490px; }
         #item3 { top: 480px; left: 370px; width: 130px;  height: 90px;  background-image: url('book.png'); background-position: -371px -480px; }
         #item4 { top: 400px; left: 200px; width: 100px;  height: 100px;  background-image: url('letter.png'); background-position: -200px -400px; }
         #item5 { top: 100px;  left: 100px; width: 130px; height: 100px; background-image: url('photo.png'); background-position: -130px -80px; }
-        
-        /* 畫架 (未解鎖時一樣保持半透明) */
         #item6 { top: 20px; left: 500px; width: 170px; height: 579px; background-image: url('frame.png'); background-position: -510px -20px; cursor: not-allowed ; }
 
         @keyframes flashEffect { 0%, 100% { filter: drop-shadow(0 0 5px #f1c40f); } 50% { filter: drop-shadow(0 0 20px #f1c40f); } }
         .flashing { animation: flashEffect 1.5s infinite; cursor: pointer !important; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-            /* === 4. 文本佈局 === */
-        .story-container { padding: 40px; height: 80%; overflow-y: auto; text-align: left; color: #ddd; line-height: 1.8; font-size: 16px; }
-        .story-container h2 { text-align: center; color: var(--paper); border-bottom: 1px solid #554; padding-bottom: 10px; margin-bottom: 20px; }
-        .paper-style { background: #eaddc5; color: #3e2723; padding: 20px; border: 1px solid #c8b79b; box-shadow: inset 0 0 20px rgba(0,0,0,0.1); font-family: 'Noto Serif TC', serif; margin-bottom: 20px;}
-        button.action-btn { display: block; margin: 15px auto; padding: 10px 20px; font-size: 16px; cursor: pointer; background: #5d4037; color: var(--paper); border: 1px solid var(--paper); transition: 0.3s; }
-        button.action-btn:hover { background: var(--paper); color: #5d4037; }
-        button.locked { opacity: 0.3; cursor: not-allowed; }
-
-        /* === 5. 人物關係圖 (星狀拓撲) === */
-        #relation-map-container { width: 100%; height: 450px; position: relative; background: #1a1a1a; border-radius: 5px; margin-top: 20px; overflow: hidden; border: 2px solid #5d4037; box-shadow: inset 0 0 30px black; }
-        .char-node { position: absolute; width: 60px; height: 60px; border-radius: 50%; background-color: #3e2723; border: 3px solid #d4af37; display: flex; justify-content: center; align-items: center; text-align: center; color: white; font-size: 12px; font-weight: bold; line-height: 1.2; transform: translate(-50%, -50%); box-shadow: 0 5px 15px rgba(0,0,0,0.8); z-index: 2; transition: 0.5s; }
-        .char-node.unknown { background-color: #222; border-color: #444; color: #666; font-size: 28px; font-family: serif; }
+        
+        /* === 4. 文本佈局 === */
+        .story-container { padding: 40px; height: 80%; overflow-y: auto; text-align: left; color: var(--ink); line-height: 1.8; font-size: 16px; }
+        .story-container h2 { text-align: center; color: #5d4037; border-bottom: 2px solid #d4af37; padding-bottom: 10px; margin-bottom: 20px; }
+        .paper-style { background: #eaddc5; color: #3e2723; padding: 20px; border: 1px solid #c8b79b; box-shadow: inset 0 0 20px rgba(0,0,0,0.05); font-family: 'Noto Serif TC', serif; margin-bottom: 20px;}      
+        
+        button.action-btn { display: block; margin: 15px auto; padding: 10px 20px; font-size: 16px; cursor: pointer; background: #5d4037; color: var(--paper); border: 1px solid #3e2723; border-radius: 4px; transition: 0.3s; }
+        button.action-btn:hover { background: #8d6e63; color: white; border-color: #d4af37; }
+        button.locked { opacity: 0.4; cursor: not-allowed; }
+        
+        /* === 5. 人物關係圖 === */
+        #relation-map-container { width: 100%; height: 450px; position: relative; background: #fdf5e6; border-radius: 5px; margin-top: 20px; overflow: hidden; border: 2px solid #8d6e63; box-shadow: inset 0 0 15px rgba(141,110,99,0.2); }
+        .char-node { position: absolute; width: 60px; height: 60px; border-radius: 50%; background-color: #5d4037; border: 3px solid #d4af37; display: flex; justify-content: center; align-items: center; text-align: center; color: white; font-size: 12px; font-weight: bold; line-height: 1.2; transform: translate(-50%, -50%); box-shadow: 0 5px 10px rgba(0,0,0,0.3); z-index: 2; transition: 0.5s; }
+        .char-node.unknown { background-color: #eaddc5; border-color: #c8b79b; color: #888; font-size: 28px; font-family: serif; box-shadow: none;}
         .char-node.center-node { width: 80px; height: 80px; background-color: #e74c3c; border-color: white; font-size: 16px; z-index: 10; }
-        .rel-label { position: absolute; background: var(--paper); color: var(--ink); padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; transform: translate(-50%, -50%); z-index: 5; border: 1px solid #8d6e63; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .rel-label { position: absolute; background: var(--paper); color: var(--ink); padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; transform: translate(-50%, -50%); z-index: 5; border: 1px solid #8d6e63; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 
         /* === 6. 報紙填空遊戲 === */
@@ -97,393 +110,91 @@
         .word-btn.hidden { visibility: hidden; pointer-events: none; }
 
         /* === 7. 畫廊與尋找威力 === */
-        /* 新增的畫廊輪播 CSS */
         .gallery-carousel { display: flex; align-items: center; justify-content: center; gap: 30px; margin-top: 30px; }
         .nav-arrow { font-size: 40px; background: none; border: none; color: #d4af37; cursor: pointer; transition: 0.3s; padding: 10px; }
         .nav-arrow:hover { color: #f1c40f; transform: scale(1.2); }
         .nav-arrow:disabled { color: #555; cursor: not-allowed; transform: none; }
 
-        /* === 7. 畫廊與尋找威力 === */
         .material-library { margin-top: 40px; border-top: 2px dashed #8d6e63; padding-top: 20px; text-align: center; }
         .material-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; }
         .material-slot { padding: 8px 12px; background: #1a1a1a; border: 1px solid #f1c40f; color: #f1c40f; font-size: 13px; border-radius: 4px; box-shadow: 0 0 5px rgba(241,196,15,0.3); }
         
-        /* 尋寶畫布 (移除畫框後，我們給它一個適當的高度) */
-        #wally-canvas { 
-            width: 100%; height: 350px; 
-            position: relative; 
-            margin-top: 10px;
-            transition: 0.3s;
-        }
-        /* === 修改：碰撞箱樣式 === */
-        .wally-target { 
-            position: absolute; 
-            /* 💡 核心修改：將原本的黃色虛線改為 transparent (透明) */
-            border: 2px dashed transparent; 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-size: 12px; 
-            color: transparent; 
-            transition: 0.3s;
-            transform: translate(-50%, -50%); 
-        }
-        
+        #wally-canvas { width: 100%; height: 350px; position: relative; margin-top: 10px; transition: 0.3s; }
+        .wally-target { position: absolute; border: 2px dashed transparent; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 12px; color: transparent; transition: 0.3s; transform: translate(-50%, -50%); }
         .wally-target.found { border-color: #2ecc71; background: rgba(46, 204, 113, 0.4); color: white; cursor: default; }
-/* === 8. 終局拼圖 === */
-        /* 【修改重點】：把寬高改為 250px 與 500px，呈現 1:2 的直幅長軸比例 */
+        
+        /* === 8. 終局拼圖 === */
         .puzzle-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 5px; width: 250px; height: 500px; margin: 20px auto; }
-        
-        .puzzle-piece { 
-            /* ❗ 請準備一張名為 final.jpg 的原圖放在資料夾中 */
-            background-image: url('final.png'); 
-            /* 【修改重點】：改用 200% 200%，讓 CSS 自動計算 2x2 拼圖的縮放比例 */
-            background-size: 200% 200%; 
-            border: 1px solid #222; 
-            cursor: pointer; 
-            transition: 0.5s; 
-            filter: grayscale(100%) blur(3px); 
-        }
-        
-        .puzzle-piece.solved { 
-            filter: grayscale(0%) blur(0px); 
-            cursor: default; 
-            box-shadow: 0 0 10px #d4af37;
-            border-color: #d4af37;
-        }
+        .puzzle-piece { background-image: url('final.png'); background-size: 200% 200%; border: 1px solid #222; cursor: pointer; transition: 0.5s; filter: grayscale(100%) blur(3px); }
+        .puzzle-piece.solved { filter: grayscale(0%) blur(0px); cursor: default; box-shadow: 0 0 10px #d4af37; border-color: #d4af37; }
         
         .match-materials { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
         .match-btn { padding: 10px; background: #2c3e50; border: 1px solid #f1c40f; color: #f1c40f; cursor: pointer; }
         .match-btn.matched { background: #2ecc71; color: white; border-color: #2ecc71; pointer-events: none; }
-        /* === 新增：最終關卡碎片與分類按鈕樣式 === */
+        
         .category-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
         .tab-btn { padding: 8px 15px; background: #3e2723; color: #ccc; border: 1px solid #777; cursor: pointer; border-radius: 5px; font-size: 15px; transition: 0.3s; }
         .tab-btn:hover { background: #5d4037; color: white; }
         .tab-btn.active { background: #d4af37; color: #000; border-color: #f1c40f; font-weight: bold; transform: scale(1.05); }
 
         .fragment-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; min-height: 85px; }
-        
-        .fragment-slot { 
-            width: 80px; height: 80px; 
-            border: 2px solid #555; 
-            cursor: pointer; 
-            transition: 0.3s;
-            background-size: cover;
-            background-position: center;
-        }
+        .fragment-slot { width: 80px; height: 80px; border: 2px solid #555; cursor: pointer; transition: 0.3s; background-size: cover; background-position: center; }
         .fragment-slot.selected { border-color: #f1c40f; box-shadow: 0 0 15px rgba(241,196,15,0.8); transform: scale(1.1); }
         .fragment-slot.placed { opacity: 0.2; pointer-events: none; filter: grayscale(100%); }
         
-        /* 💡 核心修改：將原本白色的虛線邊框改為 transparent (透明) */
-        .final-target { 
-            position: absolute; 
-            border: 2px dashed transparent; 
-            cursor: crosshair; 
-            transform: translate(-50%, -50%); 
-        }
+        .final-target { position: absolute; border: 2px dashed transparent; cursor: crosshair; transform: translate(-50%, -50%); }
+        .final-target.matched { border: 3px solid #f1c40f !important; background: rgba(241, 196, 15, 0.3) !important; box-shadow: 0 0 10px rgba(241, 196, 15, 0.8); cursor: default; }
         
-        .final-target.matched { 
-            border: 3px solid #f1c40f !important; /* 配對成功後的亮黃色實線邊框 */
-            background: rgba(241, 196, 15, 0.3) !important; 
-            box-shadow: 0 0 10px rgba(241, 196, 15, 0.8); 
-            cursor: default; 
-        }
         /* === 9. 信封撕開互動特效 === */
-        .envelope-container {
-            position: relative;
-            overflow: hidden; 
-            border-radius: 5px;
-            height: 350px;
-            padding: 0 !important; /* 蓋掉紙張預設的內邊距，讓信封貼齊邊緣 */
-        }
-        .envelope-half {
-            position: absolute;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            background: #d4c0a1; /* 復古牛皮紙色 */
-            z-index: 10;
-            transition: transform 1s ease-in-out, opacity 1s ease-in-out;
-            display: flex;
-            justify-content: center;
-            box-sizing: border-box;
-        }
-        .envelope-top {
-            top: 0;
-            align-items: flex-end;
-            border-bottom: 3px dashed #a08059;
-            cursor: grab;
-            user-select: none;
-            touch-action: pan-y;
-        }
-        .envelope-top:active { cursor: grabbing; }
-        .envelope-bottom { bottom: 0; border-top: 1px solid #a08059; }
-        
-        /* === 刪除原本的 .tear-hint，替換為以下拆信刀樣式 === */
-        
-/* 拆信刀本體：移除自動動畫，改為受 JS 精準控制 */
-        .letter-opener {
-            position: absolute;
-            bottom: -150px; 
-            right: 0%; /* 起始點在最右邊 */
-            width: 40px;
-            height: auto;
-            z-index: 12;
-            pointer-events: none; /* 讓點擊事件能穿透到信封上 */
-            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
-            transition: right 0.05s linear, transform 0.2s; /* 讓跟隨動作平滑 */
-        }
-
-        /* 新增：被割開的深色痕跡 */
-        .cut-trail {
-            position: absolute;
-            bottom: -2px; /* 剛好蓋在虛線上 */
-            right: 0;
-            height: 4px;
-            background: #2c1e14; /* 模擬信封內部深色的縫隙 */
-            width: 0%; /* 起始長度 0，由 JS 動態拉長 */
-            z-index: 11;
-            border-radius: 2px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
-        }
-        
-  .envelope-top {
-            top: 0;
-            align-items: flex-end;
-            border-bottom: 3px dashed #a08059;
-            z-index: 20; 
-            /* 💡 讓滑鼠點擊可以穿透信封上半部，確保能精準抓到刀子 */
-            pointer-events: none; 
-        }
-        
-        .envelope-bottom { 
-            bottom: 0; 
-            border-top: 1px solid #a08059; 
-            z-index: 10; 
-            /* 💡 將抓取游標移到下半部 */
-            cursor: grab; 
-            user-select: none;
-            touch-action: pan-y;
-        }
+        .envelope-container { position: relative; overflow: hidden; border-radius: 5px; height: 350px; padding: 0 !important; }
+        .envelope-half { position: absolute; left: 0; width: 100%; height: 50%; background: #d4c0a1; z-index: 10; transition: transform 1s ease-in-out, opacity 1s ease-in-out; display: flex; justify-content: center; box-sizing: border-box; }
+        .envelope-top { top: 0; align-items: flex-end; border-bottom: 3px dashed #a08059; z-index: 20; pointer-events: none; }
+        .envelope-bottom { bottom: 0; border-top: 1px solid #a08059; z-index: 10; cursor: grab; user-select: none; touch-action: pan-y; }
         .envelope-bottom:active { cursor: grabbing; }
         
-        /* 拆信刀本體 */
-        /* 拆信刀本體 */
-        .letter-opener {
-            position: absolute;
-            top: 50%;
-            margin-top: -100px; 
-            right: 0%; 
-            width: 40px;
-            height: auto;
-            z-index: 15; 
-            cursor: grab; 
-            user-select: none;
-            touch-action: pan-y;
-            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
-            transform-origin: right bottom; 
-            /* 💡 核心修復：移除了 right 的 transition，徹底解決跟隨滑鼠時的卡頓！ */
-            transition: transform 0.2s, opacity 0.5s; 
-        }
+        .letter-opener { position: absolute; top: 50%; margin-top: -100px; right: 0%; width: 40px; height: auto; z-index: 15; cursor: grab; user-select: none; touch-action: pan-y; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5)); transform-origin: right bottom; transition: transform 0.2s, opacity 0.5s; }
         .letter-opener:active { cursor: grabbing; }
         .letter-opener.torn { opacity: 0; }
 
-        /* 💡 新增補回：信封撕開時上下飛走的特效，這樣才看得到裡面的信紙展開！ */
+        .cut-trail { position: absolute; bottom: -2px; right: 0; height: 4px; background: #2c1e14; width: 0%; z-index: 11; border-radius: 2px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
         .envelope-top.torn { transform: translateY(-100%); opacity: 0; }
         .envelope-bottom.torn { transform: translateY(100%); opacity: 0; }
         
-        /* 1. 信紙本體 (藏在下方且被摺疊壓扁) */
-        .letter-paper {
-            position: absolute;
-            top: 5%; 
-            left: 5%;
-            width: 90%;
-            height: 90%;
-            background: #eaddc5; 
-            border: 1px solid #c8b79b;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            z-index: 5; 
-            
-            /* 往下移動 100% 藏在信封裡，並壓扁至 10% */
-            transform: translateY(100%) scaleY(0.1);
-            opacity: 0;
-            
-            /* 💡 核心修改：將變形基準點改為「正中心」，讓它上下同時攤開 */
-            transform-origin: center center; 
-            
-            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* 2. 抽出信件：回到正中央，但依然是壓扁的長方形 */
-        .letter-paper.pulled {
-            transform: translateY(0%) scaleY(0.1);
-            opacity: 1;
-        }
-
-        /* 3. 攤開信件：將高度展開至 100% 原比例 */
-        .letter-paper.unfolded {
-            transform: translateY(0%) scaleY(1);
-        }
-
-        /* 4. 信件文字區塊 (預設隱藏，最後才浮現) */
-        .letter-text-container {
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-            padding: 20px;
-            overflow-y: auto;
-            height: 100%;
-            box-sizing: border-box;
-        }
+        .letter-paper { position: absolute; top: 5%; left: 5%; width: 90%; height: 90%; background: #eaddc5; border: 1px solid #c8b79b; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 5; transform: translateY(100%) scaleY(0.1); opacity: 0; transform-origin: center center; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out; display: flex; flex-direction: column; }
+        .letter-paper.pulled { transform: translateY(0%) scaleY(0.1); opacity: 1; }
+        .letter-paper.unfolded { transform: translateY(0%) scaleY(1); }
+        .letter-text-container { opacity: 0; transition: opacity 1s ease-in-out; padding: 20px; overflow-y: auto; height: 100%; box-sizing: border-box; }
         .letter-text-container.revealed { opacity: 1; }
+        
         /* === 10. 展覽布幕動畫特效 === */
-        #curtain-container {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 9000; /* 確保布幕蓋在最上層 */
-            display: none; 
-            pointer-events: none; /* 避免擋住底下的滑鼠點擊 */
-            overflow: hidden;
-        }
+        #curtain-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9000; display: none; pointer-events: none; overflow: hidden; }
+        .curtain-half { position: absolute; top: 0; width: 50%; height: 100%; transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 20px rgba(0,0,0,0.8); background-size: 100% 100%; background-repeat: no-repeat; background-position: center; }
+        #curtain-left { left: 0; transform: translateX(-100%); background-image: url('curtain-left1.png'); }
+        #curtain-right { right: 0; transform: translateX(100%); background-image: url('curtain-right1.png'); }
+
+        @keyframes paperSlideIn { 0% { transform: translateY(-40px) rotate(-2deg); opacity: 0; } 100% { transform: translateY(0) rotate(0deg); opacity: 1; } }
+        .slide-in-paper { animation: paperSlideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; animation-delay: 0.4s; opacity: 0; position: relative; z-index: 10; box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important; }
         
-        /* 左右布幕的共用設定 */
-        .curtain-half {
-            position: absolute;
-            top: 0; 
-            width: 50%; /* 佔據畫面一半寬度 */
-            height: 100%; /* 填滿畫面高度 */
-            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); /* 平滑的加減速動畫 */
-            box-shadow: 0 0 20px rgba(0,0,0,0.8); /* 讓布幕有浮在畫面上的立體陰影 */
-            
-            /* 【新增重點】：設定圖片顯示方式 */
-            background-size: 100% 100%; /* 強制圖片拉伸填滿這個 50% 寬的容器 */
-            background-repeat: no-repeat; /* 防止圖片重複拼貼 */
-            background-position: center; /* 讓圖片置中對齊 */
-        }
+        @keyframes fadeInItem { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
+        .fade-in-item { opacity: 0; animation: fadeInItem 1.2s ease-out forwards; }
         
-        /* 左半邊布幕：預設躲在左邊畫面外 */
-        #curtain-left { 
-            left: 0; 
-            transform: translateX(-100%); 
-            /* 載入左邊布幕圖片 */
-            background-image: url('curtain-left1.png'); 
-            
-            /* (選擇性) 如果你的圖片邊緣已經很漂亮，這行金色飾邊可以刪除 */
-            /* border-right: 3px solid #d4af37; */
-        }
+        @keyframes pureFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        .pure-fade-in { opacity: 0; animation: pureFadeIn 1.5s ease-in-out forwards; }
         
-        /* 右半邊布幕：預設躲在右邊畫面外 */
-        #curtain-right { 
-            right: 0; 
-            transform: translateX(100%); 
-            /* 載入右邊布幕圖片 */
-            background-image: url('curtain-right1.png'); 
-            
-            /* (選擇性) 如果你的圖片邊緣已經很漂亮，這行金色飾邊可以刪除 */
-            /* border-left: 3px solid #d4af37; */
-        }
-        /* === 新增：日記紙張滑入動畫特效 === */
-        @keyframes paperSlideIn {
-            0% { 
-                transform: translateY(-40px) rotate(-2deg); /* 從上方 40px 處開始，帶有輕微傾斜 */
-                opacity: 0; 
-            }
-            100% { 
-                transform: translateY(0) rotate(0deg); /* 回到正確位置與角度 */
-                opacity: 1; 
-            }
-        }
+        /* === 全局固定按鈕與計時器 (明亮主題修復版) === */
+        #audio-toggle { position: fixed; top: 20px; left: 20px; background: rgba(252, 247, 235, 0.95); color: #5d4037; border: 2px solid #d4af37; border-radius: 5px; padding: 8px 12px; font-size: 20px; cursor: pointer; z-index: 10000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: 0.3s; display: none; }
+        #audio-toggle:hover { background: #d4af37; color: #fff; transform: scale(1.1); }
         
-        .slide-in-paper {
-            /* 執行上面寫好的動畫：持續 0.8 秒，並使用平滑的減速效果 */
-            animation: paperSlideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-            /* 延遲 0.4 秒才開始動畫，營造出「進場後才遞上紙張」的節奏感 */
-            animation-delay: 0.4s; 
-            opacity: 0; /* 動畫開始前保持隱藏 */
-            position: relative;
-            z-index: 10;
-            /* 加上更明顯的陰影，讓它看起來真的像一張浮在畫布上的紙 */
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important; 
-        }
-        /* === 新增：逐行浮現動畫特效 === */
-        @keyframes fadeInItem {
-            0% { opacity: 0; transform: translateY(15px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
+        #speedrun-timer { position: fixed; top: 20px; right: 20px; background: rgba(252, 247, 235, 0.95); color: #5d4037; padding: 10px 20px; font-size: 24px; font-weight: bold; border: 2px solid #d4af37; border-radius: 5px; z-index: 10000; display: none; letter-spacing: 2px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-family: 'Noto Serif TC', serif; }
         
-        .fade-in-item {
-            opacity: 0; /* 初始狀態為隱藏 */
-            /* 執行 1.2 秒的浮現動畫，forwards 表示動畫結束後停留在最終狀態 */
-            animation: fadeInItem 1.2s ease-out forwards; 
-        }
-        /* === 新增：純粹淡入動畫特效 (無位移) === */
-        @keyframes pureFadeIn {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-        
-        .pure-fade-in {
-            opacity: 0; 
-            animation: pureFadeIn 1.5s ease-in-out forwards; 
-        }
-        /* === 新增：音樂開關按鈕樣式 === */
-        #audio-toggle {
-            position: fixed;
-            top: 20px;
-            left: 20px; /* 💡 放在左上角，避免與右上角的計時器重疊 */
-            background: rgba(44, 30, 20, 0.85);
-            color: #f4e4bc;
-            border: 2px solid #d4af37;
-            border-radius: 5px;
-            padding: 8px 12px;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 10000; /* 確保它永遠在最上層 */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
-            transition: 0.3s;
-            display: none; /* 初始為隱藏，遊戲開始才顯示 */
-        }
-        
-        #audio-toggle:hover {
-            background: #d4af37;
-            color: #111;
-            transform: scale(1.1);
-        }
-        /* === 補回：競速系統計時器 UI === */
-        #speedrun-timer {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(44, 30, 20, 0.85); 
-            color: #f4e4bc; 
-            padding: 10px 20px;
-            font-size: 24px;
-            font-weight: bold;
-            border: 2px solid #d4af37; 
-            border-radius: 5px;
-            z-index: 10000; 
-            display: none; 
-            letter-spacing: 2px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
-            font-family: 'Noto Serif TC', serif; 
-        }
-        // 💡 請將下面這 5 行從 <script> 區塊的底部刪除 (在 </script> 的正上方)
-/* === 學生端登入與結算畫面 === */
-        #login-screen, #waiting-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; text-align: center; }
-        .login-box { background: #eaddc5; padding: 40px; border-radius: 10px; border: 3px solid #8d6e63; color: #2c1e14; }
-        .login-box select, .login-box input { display: block; width: 90%; margin: 15px auto; padding: 10px; font-size: 16px; font-family: 'Noto Serif TC', serif; }
-        .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #d4af37; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #reset-btn { position: fixed; bottom: 20px; left: 20px; background: rgba(231, 76, 60, 0.9); color: white; border: 2px solid #c0392b; border-radius: 5px; padding: 8px 12px; font-size: 16px; cursor: pointer; z-index: 10000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s; display: none; font-weight: bold; }
+        #reset-btn:hover { background: #c0392b; transform: scale(1.05); }
     </style>
 </head>
 <body>
-    <!-- 💡 核心修改：已經將 loop 屬性刪除，交由 JavaScript 精準控制 -->
     <audio id="bgm-audio" src="bgm.mp3"></audio>
     <audio id="page-sfx" src="page.mp3"></audio>
         
-<!-- === 學生登入大廳 === -->
 <div id="login-screen">
     <div class="login-box">
         <h2>登入遊戲</h2>
@@ -496,14 +207,12 @@
     </div>
 </div>
 
-<!-- 💡 核心修改：補回引言黑畫面結構，預設 style 加上 display: none -->
 <div id="start-screen" onclick="startGame()" style="display: none;">
     <p>父親過世那晚，母親陳順躺在身旁低語：</p>
     <h1>「金火啊，從今日開始我們得靠自己了。」</h1>
     <p style="font-size:14px; margin-top:40px; color:#666;">(點擊畫面)</p>
 </div>
 
-<!-- === 結算等待畫面 (預設隱藏) === -->
 <div id="waiting-screen" style="display:none;">
     <div class="login-box" id="waiting-box">
         <h2 id="waiting-title">紀錄上傳成功！</h2>
@@ -511,6 +220,7 @@
         <p id="waiting-text">請安靜等待老師結算成績...</p>
     </div>
 </div>
+
 <div id="main-room" class="scene">
     <div id="item1" class="item" onclick="readChildhood()" title="舊玩具"></div>
     <div id="item2" class="item" onclick="readNewspaper()" title="報紙"></div>
@@ -522,37 +232,31 @@
 
 <div id="sub-level" class="scene">
     <button class="close-btn" onclick="returnToRoom()">返回房間</button>
-    
-    <!-- === 新增：布幕容器 === -->
     <div id="curtain-container">
         <div id="curtain-left" class="curtain-half"></div>
         <div id="curtain-right" class="curtain-half"></div>
     </div>
-    
     <div id="level-container" class="story-container"></div>
 </div>
     
-<!-- === 新增：自訂彈出視窗 (預設隱藏) === -->
-<!-- === 新增：音樂開關按鈕 === -->
 <button id="audio-toggle" onclick="toggleAudio()">🔊</button>
-<!-- === 補回：競速系統計時器 === -->
+<button id="reset-btn" onclick="resetGame()">登出 / 重新開始</button>
 <div id="speedrun-timer">00:00</div>
+
 <div id="custom-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 10000;">
-    <!-- 套用原本的 paper-style 來維持遊戲風格 -->
     <div class="paper-style" style="width: 340px; text-align: center; border: 2px solid #8d6e63; padding: 30px;">
-        <!-- 這裡就是設定咖啡色文字的地方 -->
         <p id="custom-modal-text" style="color: #5d4037; font-size: 18px; font-weight: bold; line-height: 1.6;"></p>
         <button class="action-btn" onclick="closeCustomAlert()">我知道了</button>
     </div>
 </div>
 
-    
 <script>
 // --- 1. 遊戲大腦 (Game State) ---
-const API_URL = "https://script.google.com/macros/s/AKfycbxbtIl8bYb8vy38SebQ92J8FHnP2F3I3fO-HZVdEzjRIrbtCRegSjoiCM7xK91PDNuw/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbz3ZydnILa3SDSOBXwXO9Oh_OKbwk0DK1E0p2GwQkVvAOuLb9BS60lZFeIVUQ0TznI/exec"; 
 let mySchool = "";
 let myClass = "";
 let myName = "";
+let isSavingEnabled = true; // 💡 新增：控制存檔與復活的總開關
 
 const fetchOptions = { method: 'POST', redirect: 'follow', headers: { "Content-Type": "text/plain;charset=utf-8" } };
 
@@ -565,7 +269,7 @@ const gameState = {
         news3Unlocked: false, news3Read: false,
         finalUnlocked: false, 
         unlockedLetterCount: 1,
-        teacherRead: false, dropoutRead: false, diary1Read: false, diary2Read: false
+        teacherRead: false, dropoutRead: false, diary1Read: false, diary2Read: false, diary3Read: false
     },
     materials: [],
     characters: {
@@ -574,55 +278,51 @@ const gameState = {
         'master': { name: '雪溪老師', relation: '畫館嚴師', unlocked: false },
         'xueya': { name: '同門\n雪涯', relation: '切磋畫友', unlocked: false }, 
         'lin': { name: '林玉山', relation: '台展三少年', unlocked: false },
-        'chen': { name: '陳進', relation: '台展三少年', unlocked: false }
+        'chen': { name: '陳進', relation: '台展三少年', unlocked: false },
+        'gohara': { name: '鄉原古統\n老師', relation: '知音伯樂', unlocked: false }
     }
 };
 
-// === 💡 新增：自動存檔與讀檔系統 ===
 function saveProgress() {
-    // 遊戲還沒報到前不存檔
-    if (!myName) return; 
+    // 💡 核心防護：如果關閉存檔，就不准它偷偷把記錄存回去
+    if (!myName || !isSavingEnabled) return; 
     const dataToSave = {
         school: mySchool,
         className: myClass,
         studentName: myName,
-        gameState: gameState // 存入目前的遊戲狀態
+        gameState: gameState 
     };
     localStorage.setItem('nanjiSaveData', JSON.stringify(dataToSave));
 }
 
 function restoreUI() {
-    // 1. 恢復舊玩具的狀態與信件計時器
     if (gameState.flags.childhoodRead) {
         document.getElementById('item1').classList.remove('flashing');
-        if (gameState.flags.unlockedLetterCount < 4 && !gameState.letterTimer) {
+        if (gameState.flags.unlockedLetterCount < 5 && !gameState.letterTimer) {
             gameState.letterTimer = setInterval(() => {
-                if (gameState.flags.unlockedLetterCount < 4) { 
+                if (gameState.flags.unlockedLetterCount < 5) { 
                     gameState.flags.unlockedLetterCount++;
                     customAlert("書桌上似乎有新的信件或日記浮現了...");
                     if (document.getElementById('letter-list-container')) renderLetterList();
                 } else {
                     clearInterval(gameState.letterTimer); 
                 }
-            }, 60000); // 1 分鐘
+            }, 60000); 
         }
     } else {
         document.getElementById('item1').classList.add('flashing');
     }
 
-    // 2. 恢復信件堆狀態
     if (gameState.flags.lettersRead) {
         document.getElementById('item4').classList.remove('flashing');
     }
 
-    // 3. 恢復報紙狀態 (有解鎖但還沒讀，就要閃爍)
     if ((gameState.flags.news1Unlocked && !gameState.flags.news1Read) || 
         (gameState.flags.news2Unlocked && !gameState.flags.news2Read) || 
         (gameState.flags.news3Unlocked && !gameState.flags.news3Read)) {
         document.getElementById('item2').classList.add('flashing');
     }
 
-    // 4. 恢復畫布狀態
     if (gameState.flags.finalUnlocked) {
         const easel = document.getElementById('item6');
         easel.style.opacity = "1"; 
@@ -632,46 +332,32 @@ function restoreUI() {
     }
 }
 
-// 網頁一載入，先檢查是否有存檔
 window.addEventListener('load', async () => {
-    
-    // 💡 檢查是否有先前的遊戲進度
     const savedDataStr = localStorage.getItem('nanjiSaveData');
     if (savedDataStr) {
         const savedData = JSON.parse(savedDataStr);
-        
-        // 1. 還原基本資料
         mySchool = savedData.school;
         myClass = savedData.className;
         myName = savedData.studentName;
-        
-        // 2. 還原遊戲進度 (精準覆蓋)
         gameState.clearedLevels = savedData.gameState.clearedLevels;
         gameState.flags = savedData.gameState.flags;
         gameState.materials = savedData.gameState.materials;
         gameState.characters = savedData.gameState.characters;
         
-        // 3. 隱藏登入與開場動畫，直接進入主房間
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('audio-toggle').style.display = 'block';
+        document.getElementById('reset-btn').style.display = 'block';
         document.getElementById('main-room').classList.add('active-scene');
         
-        // 4. 還原閃爍提示與計時器
         restoreUI();
-        if (localStorage.getItem('speedrunStartTime')) {
-            startSpeedrunTimer();
-        }
-        
-        // 5. 繼續啟動每 3 秒自動存檔
+        startSpeedrunTimer();
         setInterval(saveProgress, 3000);
         
-        // 背景偷偷抓一下 API 喚醒它，不需要等結果
         fetch(API_URL, { ...fetchOptions, body: JSON.stringify({ action: 'getClasses' }) });
-        return; // 直接結束，不跑後面的正常載入流程
+        return; 
     }
 
-    // === 正常載入流程 (沒有存檔的新玩家) ===
     try {
         const response = await fetch(API_URL, { ...fetchOptions, body: JSON.stringify({ action: 'getClasses' }) });
         const result = await response.json();
@@ -692,7 +378,6 @@ window.addEventListener('load', async () => {
     }
 });
 
-// 學生點擊開始遊戲
 async function studentJoinGame() {
     const classVal = document.getElementById('class-select').value;
     myName = document.getElementById('student-name').value.trim();
@@ -710,7 +395,6 @@ async function studentJoinGame() {
         
         if (result.status === "success") {
             startSpeedrunTimer(); 
-            
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex'; 
         } else {
@@ -750,9 +434,8 @@ let speedrunInterval = null;
 function startSpeedrunTimer() {
     document.getElementById('speedrun-timer').style.display = 'block';
     
-    // 如果有舊的計時紀錄就延續，沒有就產生新的
     const savedTime = localStorage.getItem('speedrunStartTime');
-    if (savedTime) {
+    if (savedTime && !isNaN(parseInt(savedTime, 10))) {
         speedrunStartTime = parseInt(savedTime, 10);
     } else {
         speedrunStartTime = Date.now(); 
@@ -806,10 +489,10 @@ const exhibitions = {
             { name: '圓山附近', image: '2-2f.png', targets: [ { id: 'p2_2', target: '現代化設施', top: '61.4%', left: '25.95%', w: '13.7%', h: '7.8%', found: false } ] }
         ]
     },
-    taiten3: {
+        taiten3: {
         title: "第三屆臺展觀摩",
         paintings: [
-            { name: '芭蕉園', image: '3-1f.png', targets: [ { id: 'p3_1', target: '南洋熱帶景觀', top: '47.7%', left: '34.9%', w: '41.8%', h: '57.2%', found: false } ] },
+            { name: '牛車', image: '3-1f.png', targets: [ { id: 'p3_1', target: '臺灣自然特色', top: '55.7%', left: '45.9%', w: '60.8%', h: '40.2%', found: false } ] },
             { name: '朝天宮的祭典', image: '3-2f.png', targets: [
                 { id: 'p3_2_1', target: '台灣傳統廟宇的元素', top: '41.1%', left: '23.2%', w: '19.8%', h: '21.0%', found: false },
                 { id: 'p3_2_2', target: '日本殖民元素', top: '55.5%', left: '63.95%', w: '45.5%', h: '21.6%', found: false }
@@ -846,13 +529,13 @@ function startGame() {
     const startScreen = document.getElementById('start-screen');
     startScreen.style.opacity = '0'; 
     
-    setTimeout(() => {
+   setTimeout(() => {
         startScreen.style.display = 'none'; 
         document.getElementById('audio-toggle').style.display = 'block'; 
+        document.getElementById('reset-btn').style.display = 'block'; 
+
         document.getElementById('main-room').classList.add('active-scene');
         setTimeout(() => document.getElementById('item1').classList.add('flashing'), 2000); 
-        
-        // 💡 遊戲開始後，啟動自動存檔 (每 3 秒存一次)
         setInterval(saveProgress, 3000);
     }, 1500);
 }
@@ -873,7 +556,7 @@ function readChildhood() {
     
     if (!gameState.letterTimer) {
         gameState.letterTimer = setInterval(() => {
-            if (gameState.flags.unlockedLetterCount < 4) { 
+            if (gameState.flags.unlockedLetterCount < 5) { 
                 gameState.flags.unlockedLetterCount++;
                 customAlert("書桌上似乎有新的信件或日記浮現了...");
                 if (document.getElementById('letter-list-container')) {
@@ -928,7 +611,8 @@ function renderLetterList() {
         { id: 'teacher', icon: '✉️', title: '導師陳英聲給母親的信' },
         { id: 'dropout', icon: '✉️', title: '寄給母親的休學信' },
         { id: 'diary1', icon: '📔', title: '雪溪畫館的日記（一）' },
-        { id: 'diary2', icon: '📔', title: '雪溪畫館的日記（二）' }
+        { id: 'diary2', icon: '📔', title: '雪溪畫館的日記（二）' },
+        { id: 'diary3', icon: '📔', title: '繪畫日記（三）' } 
     ];
 
     let listHTML = '';
@@ -956,19 +640,29 @@ function openLetter(type) {
     if (type === 'dropout' && gameState.flags.dropoutRead) alreadyRead = true;
     if (type === 'diary1' && gameState.flags.diary1Read) alreadyRead = true;
     if (type === 'diary2' && gameState.flags.diary2Read) alreadyRead = true;
+    if (type === 'diary3' && gameState.flags.diary3Read) alreadyRead = true;
 
     if (type === 'teacher') { gameState.flags.teacherRead = true; gameState.characters['mother'].unlocked = true; gameState.characters['teacher'].unlocked = true; }
     else if (type === 'dropout') { gameState.flags.dropoutRead = true; }
     else if (type === 'diary1') { gameState.flags.diary1Read = true; gameState.characters['master'].unlocked = true; }
     else if (type === 'diary2') { gameState.flags.diary2Read = true; gameState.characters['xueya'].unlocked = true; }
-
+    else if (type === 'diary3') { 
+        gameState.flags.diary3Read = true; 
+        gameState.characters['gohara'].unlocked = true; 
+    }
+    
     let title = ""; let content = "";
     switch (type) {
         case 'teacher': title = "導師陳英聲給母親的信"; content = "陳順女士 鈞鑒：<br>令郎金火具繪畫天分，筆意自然且形神兼備。為免埋沒才華，懇請准其課後留校受我指導精進畫藝。<br><br>專此奉達，敬請 鈞安<br>臺北廳大稻埕公學校 導師 陳英聲 敬上"; break;
         case 'dropout': title = "寄給母親的休學信"; content = "母親大人 膝下：<br>孩兒金火頓首百拜。今有一事，思之再三，望母親垂察。雖修習土木，然志趣不合，唯有在繪畫中方感自得。故決定離校追尋畫藝。望母親體諒孩兒志向，我必加倍勤勉、以畫立身，不負教誨，伏請母親保重。<br>謹此奉告，叩請<br>金安"; break;
         case 'diary1': title = "雪溪畫館的日記（一）"; content = "（一）大正某年某月某日  晴<br>今日入雪溪畫館，驚喜得知母親曾私下向老師薦畫，方有此機緣。初見老師，其語平實卻力道萬鈞。我從國畫線條練起，方知往昔隨意。畫館清幽，使我心神漸定；願日後筆下之作，能不濁於世、不淺於形，以此自勉。"; break;
         case 'diary2': title = "雪溪畫館的日記（二）"; content = "（二）大正某年某月某日  陰<br>入館習畫日久，深感理論不足，遂從雪溪老師領悟線條與氣韻之理。平日與同門雪涯寫生、切磋短長，並共赴圖書館鑽研畫論。我漸領會構圖節奏與不言之意，此等進修補足了未受科班教育的空白。只要日日精進，定能自成一路。"; break;
+        case 'diary3': 
+            title = "繪畫日記（三）"; 
+            content = "（三）昭和四年 某月某日 未明<br><br>今日由王少濤引薦，始與鄉原老師初次會面。彼此交談契合，十分投緣，承蒙老師盛情邀請至其畫室參觀，心中不勝期待。老師亦提及，他生平最喜赴台寫生，除鍾愛台灣風景之美外，亦因亞熱帶氣候最宜其體質調理。"; 
+            break;
     }
+    
 
     const paperClasses = alreadyRead ? "letter-paper pulled unfolded" : "letter-paper";
     const contentClasses = alreadyRead ? "letter-text-container handwriting revealed" : "letter-text-container handwriting";
@@ -1056,30 +750,53 @@ let currentNewsLevel = 0;
 function readNewspaper() {
     if (!gameState.flags.childhoodRead) { customAlert("請先點擊閃爍的舊玩具，回憶你的初心。"); return; }
     showScene('sub-level');
+    document.getElementById('item2').classList.remove('flashing'); 
+    renderNewspaperList();
+}
+
+function renderNewspaperList() {
+    const papers = [
+        { id: 1, icon: '📰', title: '第一回臺展短評 (1927)', unlocked: gameState.flags.news1Unlocked, read: gameState.flags.news1Read },
+        { id: 2, icon: '📰', title: '第二回臺展短評 (1928)', unlocked: gameState.flags.news2Unlocked, read: gameState.flags.news2Read },
+        { id: 3, icon: '📰', title: '第三回臺展短評 (1929)', unlocked: gameState.flags.news3Unlocked, read: gameState.flags.news3Read }
+    ];
+
+    let listHTML = '';
     
-    if (gameState.flags.news3Unlocked && !gameState.flags.news3Read) { document.getElementById('item2').classList.remove('flashing'); startNewspaperPuzzle(3); } 
-    else if (gameState.flags.news2Unlocked && !gameState.flags.news2Read) { document.getElementById('item2').classList.remove('flashing'); startNewspaperPuzzle(2); } 
-    else if (gameState.flags.news1Unlocked && !gameState.flags.news1Read) { document.getElementById('item2').classList.remove('flashing'); startNewspaperPuzzle(1); } 
-    else {
-        document.getElementById('level-container').innerHTML = `
-            <h2>臺灣日日新報</h2>
-            <div class="paper-style"><p style="text-align:center;">目前沒有新的展覽報導。</p></div>
-            <button class="action-btn" onclick="returnToRoom()">將報紙放回桌面</button>
-        `;
-    }
+    papers.forEach((p) => {
+        if (p.unlocked) {
+            const statusText = p.read ? "（✅ 已解讀）" : "（⚠️ 未解讀）";
+            listHTML += `<button class="action-btn" style="width: 90%; padding: 15px; font-size: 16px;" onclick="startNewspaperPuzzle(${p.id})">${p.icon} ${p.title} ${statusText}</button>`;
+        } else {
+            listHTML += `<button class="action-btn locked" style="width: 90%; padding: 15px; font-size: 16px; border: 1px dashed #aaa; background: transparent; color: #888;" disabled>🔒 尚未獲得新的報導...</button>`;
+        }
+    });
+
+    document.getElementById('level-container').innerHTML = `
+        <h2>桌上的報紙簡報夾</h2>
+        <div id="newspaper-list-container" style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 30px; max-height: 350px; overflow-y: auto; padding-right: 10px;">
+            ${listHTML}
+        </div>
+        <button class="action-btn" style="margin-top: 25px;" onclick="returnToRoom()">將報紙放回桌面</button>
+    `;
 }
 
 function startNewspaperPuzzle(level) {
     playPageSound();
     selectedWordObj = null;
     currentNewsLevel = level;
+    
+    const isRead = (level === 1 && gameState.flags.news1Read) ||
+                   (level === 2 && gameState.flags.news2Read) ||
+                   (level === 3 && gameState.flags.news3Read);
+    
     let title = ""; let contentHTML = ""; let wordsHTML = ""; let imageFile = ""; 
     
     if (level === 1) {
         title = "第一回臺展短評 (1927)"; imageFile = "news1.png"; 
         contentHTML = `
-            「村上英夫氏的〈基隆燃放水燈圖〉描寫 <span class="blank-slot" data-answer="台灣" onclick="fillSlot(this)">___</span> 風俗，本島人的男男女女都爭相停下腳步觀賞。乍看有點長崎風俗畫的古畫感，是一幅有浮世繪風格的細密畫，以人偶般姿態描寫遊行的人物或看熱鬧的景象，甚是有趣。也可看到故意用簡樸的筆法呈現枯淡意境的苦心。」<br><br>
-            「〈山地姑娘〉看上去就像是個溫柔的 <span class="blank-slot" data-answer="番地" onclick="fillSlot(this)">___</span> 少女，有著人偶般的臉龐。〈萌芽〉是表現春天感覺的佳作，〈山地姑娘〉則是一幅令人聯想深山少女純真的象徵性畫作。」
+            「村上英夫氏的〈基隆燃放水燈圖〉描寫 <span class="blank-slot ${isRead?'filled':''}" data-answer="台灣" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '台灣' : '___'}</span> 風俗，本島人的男男女女都爭相停下腳步觀賞。乍看有點長崎風俗畫的古畫感，是一幅有浮世繪風格的細密畫，以人偶般姿態描寫遊行的人物或看熱鬧的景象，甚是有趣。也可看到故意用簡樸的筆法呈現枯淡意境的苦心。」<br><br>
+            「〈山地姑娘〉看上去就像是個溫柔的 <span class="blank-slot ${isRead?'filled':''}" data-answer="番地" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '番地' : '___'}</span> 少女，有著人偶般的臉龐。〈萌芽〉是表現春天感覺的佳作，〈山地姑娘〉則是一幅令人聯想深山少女純真的象徵性畫作。」
         `;
         const words = ["台灣", "番地", "浮世繪", "長崎", "內地"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w1_${i}" onclick="selectWord(this)">${w}</button>`).join('');
@@ -1087,7 +804,7 @@ function startNewspaperPuzzle(level) {
     else if (level === 2) {
         title = "第二回臺展短評 (1928)"; imageFile = "news2.png"; 
         contentHTML = `
-            「本島其實有許多優秀的題材，期望今後的藝術可以表現臺灣獨特的 <span class="blank-slot" data-answer="色彩" onclick="fillSlot(this)">___</span> 與光熱。就如同東都（東京）有東都的、京都有京都的、大阪有大阪的各自的鄉土藝術一樣，希望本島也能完成屬於自己的 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 。」
+            「本島其實有許多優秀的題材，期望今後的藝術可以表現臺灣獨特的 <span class="blank-slot ${isRead?'filled':''}" data-answer="色彩" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '色彩' : '___'}</span> 與光熱。就如同東都（東京）有東都的、京都有京都的、大阪有大阪的各自的鄉土藝術一樣，希望本島也能完成屬於自己的 <span class="blank-slot ${isRead?'filled':''}" data-answer="鄉土藝術" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '鄉土藝術' : '___'}</span> 。」
         `;
         const words = ["色彩" , "鄉土藝術", "筆觸", "現代主義"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w2_${i}" onclick="selectWord(this)">${w}</button>`).join('');
@@ -1095,21 +812,28 @@ function startNewspaperPuzzle(level) {
     else if (level === 3) {
         title = "第三回臺展短評 (1929)"; imageFile = "news3.png"; 
         contentHTML = `
-            「若能直言不諱吾人的希望，願臺展是臺灣 <span class="blank-slot" data-answer="鄉土藝術" onclick="fillSlot(this)">___</span> 的結晶，換言之，作品必須以能充分展現臺灣 <span class="blank-slot" data-answer="地方色" onclick="fillSlot(this)">___</span> 之物為題材來發揮臺展的特色。當然，嚴格來說，臺灣尚未擁有真正的鄉土藝術，勉強來說，源自漳州藝術、泉州藝術之流，從殘留在臺中州鹿港的建築物可一窺其基幹，或是遍布島內的寺或孔子廟等等 <span class="blank-slot" data-answer="廟宇" onclick="fillSlot(this)">___</span> 建築為其代表，然而，就繪畫而言，漳州藝術實無任何特色可言。」
+            「若能直言不諱吾人的希望，願臺展是臺灣 <span class="blank-slot ${isRead?'filled':''}" data-answer="鄉土藝術" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '鄉土藝術' : '___'}</span> 的結晶，換言之，作品必須以能充分展現臺灣 <span class="blank-slot ${isRead?'filled':''}" data-answer="地方色" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '地方色' : '___'}</span> 之物為題材來發揮臺展的特色。當然，嚴格來說，臺灣尚未擁有真正的鄉土藝術，勉強來說，源自漳州藝術、泉州藝術之流，從殘留在臺中州鹿港的建築物可一窺其基幹，或是遍布島內的寺或孔子廟等等 <span class="blank-slot ${isRead?'filled':''}" data-answer="廟宇" ${isRead ? '' : 'onclick="fillSlot(this)"'}>${isRead ? '廟宇' : '___'}</span> 建築為其代表，然而，就繪畫而言，漳州藝術實無任何特色可言。」
         `;
         const words = ["地方色", "鄉土藝術", "廟宇", "寫生"];
         wordsHTML = words.map((w, i) => `<button class="word-btn" id="w3_${i}" onclick="selectWord(this)">${w}</button>`).join('');
     }
 
+    let wordBankSection = '';
+    if (!isRead) {
+        wordBankSection = `
+            <p style="text-align:center; color:#888; font-size:14px;">(點擊下方詞彙，再點擊文章空格填入)</p>
+            <div class="word-bank">${wordsHTML}</div>
+        `;
+    }
+
     let html = `
         <h2>${title}</h2>
-        <div style="max-height: 500px; overflow-y: auto; margin-bottom: 15px; border: 2px solid #8d6e63; box-shadow: 0 5px 15px rgba(0,0,0,0.3); box-sizing: border-box;">
+        <div style="margin-bottom: 15px; border: 2px solid #8d6e63; box-shadow: 0 5px 15px rgba(0,0,0,0.1); box-sizing: border-box; background: #fffcf5;">
             <img src="./${imageFile}" alt="歷史報紙剪影" style="width: 100%; height: auto; display: block;">
         </div>
         <div class="paper-style newspaper-text">${contentHTML}</div>
-        <p style="text-align:center; color:#aaa; font-size:14px;">(點擊下方詞彙，再點擊文章空格填入)</p>
-        <div class="word-bank">${wordsHTML}</div>
-        <button class="action-btn" style="margin-top: 25px;" onclick="returnToRoom()">稍後再讀，先放回桌面</button>
+        ${wordBankSection}
+        <button class="action-btn" style="margin-top: 25px;" onclick="renderNewspaperList()">返回報紙簡報夾</button>
     `;
     document.getElementById('level-container').innerHTML = html;
 }
@@ -1163,7 +887,8 @@ function checkPuzzleCompletion() {
                 if (currentNewsLevel === 1) gameState.flags.news1Read = true;
                 if (currentNewsLevel === 2) gameState.flags.news2Read = true;
                 if (currentNewsLevel === 3) gameState.flags.news3Read = true;
-                returnToRoom();
+                
+                renderNewspaperList(); 
             } else {
                 customAlert("理解有誤...請點擊填好的詞彙將其移除，重新選擇再試一次。");
             }
@@ -1357,7 +1082,7 @@ function renderPhase0_BalanceGame() {
     
     let html = `
         <h2>完成《南街殷賑》：第一階段 (內心的平衡)</h2>
-        <p style="text-align:center; font-size:14px; margin-top:0; color:#ddd;">郭雪湖在畫布上進行了一場巧妙的文化協商。請分辨哪些是他自身的「鄉土意識」，哪些是迎合官方的「地方色」。<br><span style="color:#f1c40f;">(💡 請直接用滑鼠或手指「拖曳」法碼放上天秤。注意：有些是錯誤迷思，請留在下方)</span></p>
+        <p style="text-align:center; font-size:14px; margin-top:0; color:#5d4037;">畫家在畫布上進行了一場巧妙的文化協商。請分辨哪些是自身的「鄉土意識」，哪些是迎合官方的「地方色」。<br><span style="color:#f1c40f;">(💡 請直接用滑鼠或手指「拖曳」法碼放上天秤。注意：有些是錯誤迷思，請留在下方)</span></p>
         
         <div style="position: relative; width: 500px; height: 180px; margin: 10px auto;">
             <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 120px; background: #5d4037; border-radius: 8px 8px 0 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5);"></div>
@@ -1634,7 +1359,7 @@ function renderPhase2_Match() {
 
     let html = `
         <h2>完成《南街殷賑》：第三階段 (注入靈感)</h2>
-        <p style="text-align:center; margin-top:0;">請切換下方元素分類，先點擊局部畫面再放回畫布中！<br><span style="font-size:12px; color:#aaa;">(💡 畫作較長，可以在畫面上<b>上下滑動</b>來尋找位置)</span></p>
+        <p style="text-align:center; margin-top:0;">請切換下方元素分類，先點擊局部畫面再放回畫布中！<br><span style="font-size:12px; color:#f1c40f;">(💡 畫作較長，可以在畫面上<b>上下滑動</b>來尋找位置)</span></p>
         <div style="width: 100%; height: 350px; overflow-y: auto; border: 2px solid #8d6e63; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); margin-bottom: 15px; background: #222; box-sizing: border-box;">
             <div style="position: relative; width: 100%;">
                 <img src="./final.png" style="width: 100%; height: auto; display: block; filter: sepia(0.3);">
@@ -1699,7 +1424,7 @@ function clickFinalTarget(targetIdx) {
 function renderPhase3_Signature() {
     document.getElementById('level-container').innerHTML = `
         <h2>完成《南街殷賑》：最終階段</h2>
-        <p style="text-align:center;">根據一路上的線索，你想起真正的畫名了嗎？</p>
+        <p style="text-align:center;">根據一路上的線索，你想起真正的名字了嗎？</p>
         <p style="text-align:center; color:#e74c3c; font-weight:bold; margin-top:15px;">
             ⚠️ 注意：你只有一次落筆的機會！一旦寫錯將無法更改。<br>
             <span style="font-size:14px; color:#aaa;">(💡 提示：請翻閱課本找尋答案)</span>
@@ -1714,28 +1439,87 @@ async function checkSignature() {
     const btnEl = document.getElementById('signature-btn');
     const name = inputEl.value.trim(); 
     
+    // 如果沒輸入名字就按送出，給予提示
+    if (!name) {
+        customAlert("請輸入畫家姓名！");
+        return;
+    }
+    
     inputEl.disabled = true;
     btnEl.disabled = true;
     btnEl.style.opacity = "0.5";
-    btnEl.innerText = "資料上傳中...";
+    btnEl.innerText = "確認考場狀態中...";
 
+    // 💡 修正關鍵 1：先準備好所有要上傳的變數，再執行後續動作！
     const isCorrect = (name === "郭雪湖" || name === "雪湖" || name === "郭金火");
     const gameStatus = isCorrect ? "成功" : "失敗";
     const finalTime = stopSpeedrunTimer();
-    
-    // 💡 遊戲通關，清除本機的自動存檔，讓下一位玩家可以重頭開始！
+
+    // 💡 步驟 1：先問後台「老師結束遊戲了嗎？」(遲交攔截機制)
+    try {
+        const checkRes = await fetch(API_URL, { 
+            ...fetchOptions, 
+            body: JSON.stringify({ action: 'checkEnd', school: mySchool, className: myClass, studentName: myName }) 
+        });
+        const checkData = await checkRes.json();
+        
+        if (checkData.isEnded) {
+            // 🛑 攔截：老師已經結束遊戲了
+            isSavingEnabled = false; // 關閉自動存檔
+            localStorage.removeItem('nanjiSaveData');
+            localStorage.removeItem('speedrunStartTime');
+
+            document.getElementById('waiting-screen').style.display = 'flex';
+            document.getElementById('main-room').style.display = 'none';
+            document.getElementById('sub-level').style.display = 'none';
+            
+            // 顯示專屬的遲交訊息
+            document.getElementById('waiting-spinner').style.display = 'none';
+            document.getElementById('waiting-title').innerText = "結算已關閉";
+            document.getElementById('waiting-text').innerHTML = `
+                <h1 style="color: #e74c3c;">太遲了...</h1>
+                <p style="font-size:20px;">老師已結束遊戲，本次成績無法計入排名。</p>
+                <p style="font-size:24px; font-weight:bold; margin-top:20px;">這幅畫真正的主人是：<span style="color:#d4af37;">郭雪湖</span></p>
+                <button class="action-btn" onclick="resetGame()" style="margin-top: 25px;">清除記憶，返回大廳</button>
+            `;
+            return; // 中斷函式，絕對不執行後續的上傳動作
+        }
+    } catch(e) { 
+        console.log("狀態檢查異常，繼續嘗試上傳...", e); 
+    }
+
+    // 💡 步驟 2：遊戲未結束，正常上傳成績
+    btnEl.innerText = "資料上傳中...";
+    isSavingEnabled = false; // 關閉自動存檔，避免復活 Bug
     localStorage.removeItem('nanjiSaveData');
     localStorage.removeItem('speedrunStartTime');
 
     try {
-        await fetch(API_URL, {
+        const saveRes = await fetch(API_URL, {
             ...fetchOptions,
             body: JSON.stringify({
+                // 這裡會安全地使用剛剛最上面準備好的 gameStatus 和 finalTime
                 action: 'saveResult', school: mySchool, className: myClass, studentName: myName, status: gameStatus, time: finalTime
             })
         });
-    } catch(e) { console.log("上傳失敗", e); }
+        const saveData = await saveRes.json();
+        
+        // 抓蟲雷達：如果後台拒絕存檔，跳出明確原因
+        if (saveData.status === "error") {
+            alert("❌ 存檔失敗：" + saveData.message);
+            btnEl.innerText = "重新送出";
+            btnEl.disabled = false;
+            btnEl.style.opacity = "1";
+            isSavingEnabled = true; // 恢復存檔機制以利重新挑戰
+            return; // 終止流程
+        }
+    } catch(e) { 
+        console.log("上傳失敗", e); 
+        alert("❌ 網路異常，無法上傳成績！");
+        return;
+    }
 
+    // 💡 步驟 3：如果一切順利，切換到等待畫面並開始呼叫結算 API
     document.getElementById('waiting-screen').style.display = 'flex';
     document.getElementById('main-room').style.display = 'none';
     document.getElementById('sub-level').style.display = 'none';
@@ -1758,15 +1542,17 @@ function pollEndGameStatus() {
                 
                 if (result.myStatus === "成功") {
                     document.getElementById('waiting-text').innerHTML = `
-                        <h1 style="color: #2ecc71;">通關成功</h1>
-                        <p style="font-size:24px; font-weight:bold;">恭喜！你是全班第 <span style="color:#d4af37; font-size:36px;">${result.rank}</span> 名解開謎團的探險家！</p>
-                        <p>南街殷賑的風華因你而重現。</p>
+                        <h1 style="color: #2ecc71; margin-bottom: 5px;">通關成功</h1>
+                        <p style="font-size:18px; color: #5d4037; margin-top: 0;">通關時長：<span style="color:#d4af37; font-size:24px; font-weight:bold;">${result.myTime}</span></p>
+                        <p style="font-size:24px; font-weight:bold; margin-top: 20px;">恭喜！你是全班第 <span style="color:#e74c3c; font-size:36px;">${result.rank}</span> 名解開謎團的探險家！</p>
+                        <p style="color: #5d4037;">南街殷賑的風華因你而重現。</p>
                     `;
-                } else {
+                } else {  // 💡 已經修復這裡的重複 else
                     document.getElementById('waiting-text').innerHTML = `
                         <h1 style="color: #e74c3c;">落款錯誤</h1>
                         <p style="font-size:20px;">歷史的記憶模糊了...</p>
                         <p style="font-size:24px; font-weight:bold; margin-top:20px;">這幅畫真正的主人是：<span style="color:#d4af37;">${result.correctAnswer}</span></p>
+                        <button class="action-btn" onclick="resetGame()" style="margin-top: 25px;">清除記憶，重新挑戰</button>
                     `;
                 }
             }
@@ -1780,8 +1566,7 @@ function checkRoomState() {
     if (gameState.clearedLevels.taiten3 && !gameState.flags.news3Unlocked) { gameState.flags.news3Unlocked = true; document.getElementById('item2').classList.add('flashing'); }
     
     const allNewsRead = gameState.flags.news1Read && gameState.flags.news2Read && gameState.flags.news3Read;
-    const allLettersRead = gameState.flags.teacherRead && gameState.flags.dropoutRead && gameState.flags.diary1Read && gameState.flags.diary2Read;
-
+    const allLettersRead = gameState.flags.teacherRead && gameState.flags.dropoutRead && gameState.flags.diary1Read && gameState.flags.diary2Read && gameState.flags.diary3Read;
     if (gameState.clearedLevels.taiten3 && gameState.materials.length >= 4 && allNewsRead && allLettersRead && !gameState.flags.finalUnlocked) {
         gameState.flags.finalUnlocked = true;
         const easel = document.getElementById('item6');
@@ -1869,6 +1654,28 @@ function openWithCurtain(exKey) {
         rightCurtain.style.transform = 'translateX(100%)';
         setTimeout(() => { curtain.style.display = 'none'; }, 1200);
     }, 1200); 
+}
+
+function resetGame() {
+    if (confirm("確定要放棄目前的進度並登出嗎？這將會清除所有已解鎖的線索！")) {
+        isSavingEnabled = false; // 💡 關閉存檔
+        
+        const overlay = document.createElement('div');
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fcf7eb; display: flex; justify-content: center; align-items: center; flex-direction: column; z-index: 99999;";
+        overlay.innerHTML = `
+            <div class="spinner" style="border-color: #eaddc5; border-top-color: #d4af37;"></div>
+            <h2 style="color: #5d4037; font-family: 'Noto Serif TC', serif;">正在清除記憶，返回大廳...</h2>
+        `;
+        document.body.appendChild(overlay);
+        
+        localStorage.removeItem('nanjiSaveData');
+        localStorage.removeItem('speedrunStartTime');
+        
+        setTimeout(() => {
+            // 💡 更安全的重新整理方式
+            window.location.href = window.location.href.split('#')[0].split('?')[0]; 
+        }, 500);
+    }
 }
 </script>
 </body>
