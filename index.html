@@ -1544,14 +1544,14 @@ function pollEndGameStatus() {
                     document.getElementById('waiting-text').innerHTML = `
                         <h1 style="color: #2ecc71; margin-bottom: 5px;">通關成功</h1>
                         <p style="font-size:18px; color: #5d4037; margin-top: 0;">通關時長：<span style="color:#d4af37; font-size:24px; font-weight:bold;">${result.myTime}</span></p>
-                        <p style="font-size:24px; font-weight:bold; margin-top: 20px;">恭喜！你是全班第 <span style="color:#e74c3c; font-size:36px;">${result.rank}</span> 名解開謎團的探險家！</p>
+                        <p style="font-size:24px; font-weight:bold; margin-top: 20px;">恭喜！你是全班第 <span style="color:#e74c3c; font-size:36px;">${result.rank}</span> 名想起名字的畫家！</p>
                         <p style="color: #5d4037;">南街殷賑的風華因你而重現。</p>
                     `;
                 } else {  // 💡 已經修復這裡的重複 else
                     document.getElementById('waiting-text').innerHTML = `
                         <h1 style="color: #e74c3c;">落款錯誤</h1>
                         <p style="font-size:20px;">歷史的記憶模糊了...</p>
-                        <p style="font-size:24px; font-weight:bold; margin-top:20px;">這幅畫真正的主人是：<span style="color:#d4af37;">${result.correctAnswer}</span></p>
+                        <p style="font-size:24px; font-weight:bold; margin-top:20px;">你的名字是：<span style="color:#d4af37;">${result.correctAnswer}</span></p>
                         <button class="action-btn" onclick="resetGame()" style="margin-top: 25px;">清除記憶，重新挑戰</button>
                     `;
                 }
