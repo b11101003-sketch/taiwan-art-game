@@ -192,8 +192,8 @@
     </style>
 </head>
 <body>
-    <audio id="bgm-audio" src="bgm.mp3"></audio>
-    <audio id="page-sfx" src="page.mp3"></audio>
+    <audio id="bgm-audio" src="bgm.mp3" preload="auto"></audio>
+    <audio id="page-sfx" src="page.mp3" preload="auto"></audio>
         
 <div id="login-screen">
     <div class="login-box">
@@ -355,7 +355,19 @@ window.addEventListener('load', async () => {
         setInterval(saveProgress, 3000);
         
         fetch(API_URL, { ...fetchOptions, body: JSON.stringify({ action: 'getClasses' }) });
-        return; 
+        
+        // 💡 關鍵修復：讀檔時因為跳過了開場畫面，必須等玩家第一次「點擊畫面」時喚醒音樂！
+        const wakeUpAudio = () => {
+            const bgm = document.getElementById('bgm-audio');
+            if (bgm && bgm.paused && !isMuted) {
+                bgm.volume = BGM_VOLUME;
+                bgm.play().catch(e => {});
+            }
+            document.removeEventListener('pointerdown', wakeUpAudio); // 喚醒後就解除監聽
+        };
+        document.addEventListener('pointerdown', wakeUpAudio);
+
+        return; // 這行是你原本就有的
     }
 
     try {
@@ -406,7 +418,7 @@ async function studentJoinGame() {
 }
 
 const BGM_VOLUME = 0.1; 
-const SFX_VOLUME = 0.8; 
+const SFX_VOLUME = 1; 
 let isMuted = false;
 
 function toggleAudio() {
@@ -414,7 +426,15 @@ function toggleAudio() {
     const bgm = document.getElementById('bgm-audio');
     const sfx = document.getElementById('page-sfx');
     const btn = document.getElementById('audio-toggle');
-    if (bgm) bgm.muted = isMuted;
+    
+    if (bgm) {
+        bgm.muted = isMuted;
+        // 💡 關鍵修復：如果解除靜音時音樂是暫停的，就幫它「按開始」
+        if (!isMuted && bgm.paused) {
+            bgm.volume = BGM_VOLUME;
+            bgm.play().catch(e => console.log("等待互動才能播放音樂"));
+        }
+    }
     if (sfx) sfx.muted = isMuted;
     btn.innerText = isMuted ? '🔇' : '🔊';
 }
@@ -423,7 +443,7 @@ function playPageSound() {
     const sfx = document.getElementById('page-sfx');
     if (sfx) {
         sfx.volume = SFX_VOLUME; 
-        sfx.currentTime = 1; 
+        sfx.currentTime = 0; 
         sfx.play().catch(e => console.log("音效播放被瀏覽器阻擋:", e));
     }
 }
@@ -521,9 +541,12 @@ function startGame() {
     const bgm = document.getElementById('bgm-audio');
     if (bgm) {
         bgm.volume = BGM_VOLUME; 
-        bgm.currentTime = 15; 
-        bgm.play().catch(e => console.log("BGM 播放被瀏覽器阻擋:", e));
-        bgm.addEventListener('ended', function() { this.currentTime = 15; this.play(); });
+        // 💡 關鍵修復：先讓音樂播出來，再設定跳到 15 秒，避免載入時間差導致崩潰
+        bgm.play().then(() => {
+            if (bgm.currentTime < 15) bgm.currentTime = 15;
+        }).catch(e => console.log("BGM 播放被瀏覽器阻擋:", e));
+        
+        bgm.onended = function() { this.currentTime = 15; this.play(); };
     }
 
     const startScreen = document.getElementById('start-screen');
@@ -1539,20 +1562,44 @@ function pollEndGameStatus() {
                 const waitingBox = document.getElementById('waiting-box');
                 document.getElementById('waiting-spinner').style.display = 'none';
                 document.getElementById('waiting-title').innerText = "結算完成！";
+
+                // 💡 準備好的「帶捲軸復古文獻框」，裝載所有參考資料
+                const referencesHTML = `
+                    <div style="margin-top: 25px; text-align: left; background: rgba(234, 221, 197, 0.4); padding: 15px; border: 1px dashed #a08059; border-radius: 5px; font-size: 12px; color: #5d4037; max-height: 130px; overflow-y: auto; line-height: 1.6; font-family: 'Noto Serif TC', serif;">
+                        <div style="font-weight: bold; border-bottom: 1px solid #c8b79b; padding-bottom: 5px; margin-bottom: 8px;">📚 參考資料</div>
+                        <ol style="margin: 0; padding-left: 20px;">
+                            <li>林柏亭，《臺灣美術全集．郭雪湖》。臺北：藝術家出版社，1992。</li>
+                            <li>郭雪湖，〈後苑雞立〉（1920年），「北美館展覽資料庫：郭雪湖浸淫丹青七十年作品展」，臺北市立美術館，網址：https://archives.tfam.museum/exhibit/exhibitworks_detail.jsp?id=11873（瀏覽日期：2026年6月3日）。</li>
+                            <li>蕭瓊瑞，〈「台灣美展80年」的史料彙整與研究展望〉，臺灣美術知識庫，國立臺灣美術館，網址：https://twfineartsarchive.ntmofa.gov.tw/TW/Search/Introduction.aspx（瀏覽日期：2026年6月3日）。</li>
+                            <li>郭雪湖，〈松壑飛泉〉（1920年），「國家文化記憶庫：臺府展數位物件」，文化部，網址：https://tcmb.culture.tw/zh-tw/detail?indexCode=Taifuten_object&id=CA01_011_P006_040_e_t1（瀏覽日期：2026年6月3日）。</li>
+                            <li>村上無羅（村上英夫），〈基隆燃放水燈圖〉， https://ntmofa-collections.ntmofa.gov.tw/GalData.aspx?RNO=MKMEMZMLMAMBMKMY&FROM=MN0F5K5M595L5MKLMT5J5R58（檢索日期：2026/6/1）。</li>
+                            <li>許伯瑜，〈【名單之後】村上無羅：古典之眼別開異地之色〉，「名單之後：臺灣近代美術檔案庫」，財團法人陳澄波文化基金會，網址：https://taifuten.com/story/（瀏覽日期：2026年6月3日）。</li>
+                            <li>鹽月桃甫，〈山地姑娘〉（1927年），「名單之後：臺灣近代美術檔案庫」，財團法人陳澄波文化基金會，網址：https://taifuten.com/object/山地姑娘/（瀏覽日期：2026年6月3日）。</li>
+                            <li>西岡塘翠，〈說苑／點綴島嶼臺灣的美術之秋，臺展素人短評〉，《臺灣時報》，1927-12-15，頁83-92（辨識、翻譯／李淑珠）。</li>
+                            <li>徐清蓮，〈春宵之圖〉，「名單之後：臺灣近代美術檔案庫」，財團法人陳澄波文化基金會，網址：https://taifuten.com/object/春宵之圖/（瀏覽日期：2026年6月3日）。</li>
+                            <li>郭雪湖，〈圓山附近〉（1928年），「典藏品：郭雪湖《圓山附近》」，臺北市立美術館，網址：https://www.tfam.museum/collection/CollectionDetail.aspx?CID=3359&ddlLang=zh-tw（瀏覽日期：2026年6月3日）。</li>
+                            <li>邱函妮，〈創造福爾摩沙藝術:近代臺灣美術中「地方色」與鄉土藝術的重層論述〉，《國立臺灣大學美術史研究集刊》37 期(2014 年 9 月)，頁 182-191。</li>
+                            <li>郭雪湖，〈南街殷賑〉，北美館典藏， https://www.tfam.museum/Collection/CollectionList.aspx?sopen=1&menu=41&ddlLang=zh-tw（檢索日期：2026/6/1）。</li>
+                            <li>〈第三回臺展畫的審查結束 新鄉土藝術的創造如何〉，《臺灣日日新報》，1929-11-13（日刊2版）（辨識、翻譯／李淑珠）。</li>
+                        </ol>
+                    </div>
+                `;
                 
                 if (result.myStatus === "成功") {
                     document.getElementById('waiting-text').innerHTML = `
                         <h1 style="color: #2ecc71; margin-bottom: 5px;">通關成功</h1>
                         <p style="font-size:18px; color: #5d4037; margin-top: 0;">通關時長：<span style="color:#d4af37; font-size:24px; font-weight:bold;">${result.myTime}</span></p>
-                        <p style="font-size:24px; font-weight:bold; margin-top: 20px;">恭喜！你是全班第 <span style="color:#e74c3c; font-size:36px;">${result.rank}</span> 名想起名字的畫家！</p>
-                        <p style="color: #5d4037;">南街殷賑的風華因你而重現。</p>
+                        <p style="font-size:24px; font-weight:bold; margin-top: 20px;">恭喜！你是全班第 <span style="color:#e74c3c; font-size:36px;">${result.rank}</span> 名解開謎團的探險家！</p>
+                        <p style="color: #5d4037; margin-bottom: 0;">南街殷賑的風華因你而重現。</p>
+                        ${referencesHTML}
                     `;
-                } else {  // 💡 已經修復這裡的重複 else
+                } else {
                     document.getElementById('waiting-text').innerHTML = `
                         <h1 style="color: #e74c3c;">落款錯誤</h1>
                         <p style="font-size:20px;">歷史的記憶模糊了...</p>
-                        <p style="font-size:24px; font-weight:bold; margin-top:20px;">你的名字是：<span style="color:#d4af37;">${result.correctAnswer}</span></p>
-                        <button class="action-btn" onclick="resetGame()" style="margin-top: 25px;">清除記憶，重新挑戰</button>
+                        <p style="font-size:24px; font-weight:bold; margin-top:20px;">這幅畫真正的主人是：<span style="color:#d4af37;">${result.correctAnswer}</span></p>
+                        <button class="action-btn" onclick="resetGame()" style="margin-top: 15px;">清除記憶，重新挑戰</button>
+                        ${referencesHTML}
                     `;
                 }
             }
